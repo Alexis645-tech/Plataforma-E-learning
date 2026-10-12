@@ -11,7 +11,8 @@ import {
   Check,
   Mail,
   Building,
-  RotateCcw
+  RotateCcw,
+  Lock
 } from 'lucide-react';
 
 const AVATAR_PRESETS = [
@@ -24,7 +25,7 @@ const AVATAR_PRESETS = [
 ];
 
 export const ProfileSettings: React.FC = () => {
-  const { currentUser, updateUser, theme, toggleTheme, resetToDefaultData } = useApp();
+  const { currentUser, updateUser, theme, toggleTheme } = useApp();
 
   const [name, setName] = useState(currentUser.name);
   const [email, setEmail] = useState(currentUser.email);
@@ -33,11 +34,13 @@ export const ProfileSettings: React.FC = () => {
   const [selectedAvatar, setSelectedAvatar] = useState(currentUser.avatar);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
+  const isEmailLocked = currentUser.role === 'student' || currentUser.role === 'teacher';
+
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     updateUser(currentUser.id, {
       name: name.trim(),
-      email: email.trim(),
+      email: isEmailLocked ? currentUser.email : email.trim(),
       bio: bio.trim(),
       department: department.trim() || undefined,
       avatar: selectedAvatar
@@ -131,16 +134,41 @@ export const ProfileSettings: React.FC = () => {
             </div>
 
             <div>
-              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Correo Electrónico *
-              </label>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
-              />
+              <div className="flex items-center justify-between mb-1">
+                <label className="block font-semibold text-slate-700 dark:text-slate-300">
+                  Correo Electrónico *
+                </label>
+                {isEmailLocked && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded border border-amber-200/80 dark:border-amber-900/50">
+                    <Lock className="w-2.5 h-2.5" />
+                    Bloqueado
+                  </span>
+                )}
+              </div>
+              <div className="relative">
+                <input
+                  type="email"
+                  required
+                  disabled={isEmailLocked}
+                  readOnly={isEmailLocked}
+                  value={email}
+                  onChange={(e) => !isEmailLocked && setEmail(e.target.value)}
+                  className={`w-full px-3 py-2 rounded-lg border text-xs transition-colors ${
+                    isEmailLocked
+                      ? 'border-slate-200 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 cursor-not-allowed select-none pr-9'
+                      : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500'
+                  }`}
+                  title={isEmailLocked ? 'El correo institucional solo puede ser modificado por el Administrador' : undefined}
+                />
+                {isEmailLocked && (
+                  <Lock className="w-3.5 h-3.5 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
+                )}
+              </div>
+              {isEmailLocked && (
+                <p className="mt-1 text-[11px] text-slate-400 dark:text-slate-500">
+                  Tu correo institucional está gestionado por el Administrador y no puede ser modificado por estudiantes ni docentes.
+                </p>
+              )}
             </div>
           </div>
 

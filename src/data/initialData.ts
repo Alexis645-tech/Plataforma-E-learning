@@ -528,7 +528,7 @@ export const INITIAL_NOTIFICATIONS: AppNotification[] = [
   {
     id: 'notif_3',
     userId: 'usr_student_1',
-    title: 'Mensaje Nuevo',
+    title: 'Mensaje Nuevo en Chat',
     message: 'Dra. Elena Ramos te ha enviado un mensaje directo en el chat.',
     type: 'chat',
     read: true,
@@ -538,12 +538,42 @@ export const INITIAL_NOTIFICATIONS: AppNotification[] = [
   {
     id: 'notif_4',
     userId: 'usr_admin_1',
-    title: 'Reporte de la Institución',
+    title: 'Reporte Institucional del Campus',
     message: 'El ciclo académico actual cuenta con 6 usuarios activos y 3 cursos publicados.',
     type: 'system',
     read: true,
     timestamp: '2026-10-05T09:00:00',
-    linkAction: 'admin_dashboard'
+    linkAction: 'dashboard'
+  },
+  {
+    id: 'notif_5',
+    userId: 'usr_admin_1',
+    title: 'Gestión y Auditoría de Usuarios',
+    message: 'Revisa las cuentas de docentes y estudiantes en la gestión exclusiva de usuarios.',
+    type: 'system',
+    read: false,
+    timestamp: '2026-10-10T11:20:00',
+    linkAction: 'users'
+  },
+  {
+    id: 'notif_6',
+    userId: 'usr_teacher_1',
+    title: 'Cuestionario Programado',
+    message: 'El cuestionario de JavaScript Asíncrono está listo en la sección de evaluaciones.',
+    type: 'assignment',
+    read: false,
+    timestamp: '2026-10-10T09:15:00',
+    linkAction: 'evaluations'
+  },
+  {
+    id: 'notif_7',
+    userId: 'usr_student_1',
+    title: 'Nueva Tarea Asignada',
+    message: 'Tienes una nueva tarea pendiente: Proyecto Práctico 1 en Desarrollo Web Full Stack.',
+    type: 'assignment',
+    read: false,
+    timestamp: '2026-10-10T08:30:00',
+    linkAction: 'assignments'
   }
 ];
 

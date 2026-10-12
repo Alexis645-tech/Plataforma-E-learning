@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import { UserRole } from '../../types';
+import { UserRole, AppNotification } from '../../types';
 import {
   GraduationCap,
   Bell,
@@ -16,7 +16,10 @@ import {
   Sparkles,
   Menu,
   X,
-  LogOut
+  LogOut,
+  FileText,
+  Users,
+  ArrowRight
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -27,9 +30,6 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, isSidebarOpen }) => {
   const {
     currentUser,
-    switchRole,
-    users,
-    setCurrentUser,
     theme,
     toggleTheme,
     notifications,
@@ -83,6 +83,94 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, isSidebarOpen }
     }
   };
 
+  const handleNotificationClick = (n: AppNotification) => {
+    markNotificationAsRead(n.id);
+    setIsNotifOpen(false);
+
+    let targetTab = n.linkAction;
+
+    // Normalize legacy or specific aliases
+    if (targetTab === 'admin_dashboard') {
+      targetTab = 'dashboard';
+    }
+
+    if (!targetTab) {
+      if (n.type === 'chat') {
+        targetTab = 'chat';
+      } else if (n.type === 'grade') {
+        targetTab = currentUser.role === 'teacher' ? 'grading' : 'grades';
+      } else if (n.type === 'assignment') {
+        targetTab = currentUser.role === 'teacher' ? 'grading' : 'assignments';
+      } else if (n.type === 'system') {
+        targetTab = currentUser.role === 'admin' ? 'dashboard' : 'dashboard';
+      } else {
+        targetTab = 'dashboard';
+      }
+    }
+
+    // Role-specific mapping adjustments
+    if (currentUser.role === 'teacher') {
+      if (targetTab === 'assignments') {
+        targetTab = 'evaluations';
+      }
+    } else if (currentUser.role === 'student') {
+      if (targetTab === 'grading') {
+        targetTab = 'grades';
+      }
+    }
+
+    setActiveTab(targetTab);
+  };
+
+  const getNotifIcon = (n: AppNotification) => {
+    switch (n.type) {
+      case 'grade':
+        return <Award className="w-4 h-4 text-emerald-500" />;
+      case 'assignment':
+        return <FileText className="w-4 h-4 text-indigo-500" />;
+      case 'chat':
+        return <MessageSquare className="w-4 h-4 text-sky-500" />;
+      case 'system':
+      default:
+        if (n.linkAction === 'users') {
+          return <Users className="w-4 h-4 text-violet-500" />;
+        }
+        return <Bell className="w-4 h-4 text-amber-500" />;
+    }
+  };
+
+  const getNotifDestinationInfo = (n: AppNotification) => {
+    const action = n.linkAction;
+    if (action === 'grades' || n.type === 'grade') {
+      if (currentUser.role === 'teacher') {
+        return { label: 'Ir a Calificar', color: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60' };
+      }
+      return { label: 'Ver Mis Calificaciones', color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60' };
+    }
+    if (action === 'grading') {
+      return { label: 'Centro de Calificaciones', color: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60' };
+    }
+    if (action === 'assignments' || action === 'evaluations' || n.type === 'assignment') {
+      if (currentUser.role === 'teacher') {
+        return { label: 'Revisar Tareas', color: 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60' };
+      }
+      return { label: 'Ver Tareas Asignadas', color: 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60' };
+    }
+    if (action === 'chat' || n.type === 'chat') {
+      return { label: 'Abrir Chat Directo', color: 'text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/60' };
+    }
+    if (action === 'users') {
+      return { label: 'Gestión de Usuarios', color: 'text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-950/60' };
+    }
+    if (action === 'courses' || action === 'catalog') {
+      return { label: 'Directorio de Cursos', color: 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60' };
+    }
+    if (action === 'profile') {
+      return { label: 'Mi Perfil', color: 'text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800' };
+    }
+    return { label: 'Ir al Panel', color: 'text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800' };
+  };
+
   return (
     <header className="sticky top-0 z-40 w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 transition-colors">
       <div className="flex items-center justify-between px-4 lg:px-8 h-16 gap-4">
@@ -123,11 +211,15 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, isSidebarOpen }
           {/* Dark Mode Toggle */}
           <button
             onClick={toggleTheme}
-            className="p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+            className="p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
             title={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
-            aria-label="Cambiar tema de color"
+            aria-label={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
           >
-            {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
+            {theme === 'dark' ? (
+              <Sun className="w-4 h-4 text-amber-400 transition-transform hover:rotate-45" />
+            ) : (
+              <Moon className="w-4 h-4 text-slate-600 dark:text-slate-300 transition-transform hover:-rotate-12" />
+            )}
           </button>
 
           {/* Notifications Popover */}
@@ -165,40 +257,59 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, isSidebarOpen }
                   )}
                 </div>
 
-                <div className="max-h-72 overflow-y-auto space-y-1.5">
+                <div className="max-h-80 overflow-y-auto space-y-2 pr-0.5">
                   {notifications.filter((n) => n.userId === currentUser.id).length === 0 ? (
-                    <div className="py-6 text-center text-xs text-slate-400 dark:text-slate-500">
-                      No tienes notificaciones pendientes
+                    <div className="py-8 text-center text-xs text-slate-400 dark:text-slate-500 space-y-1">
+                      <Bell className="w-6 h-6 mx-auto opacity-30 text-slate-400" />
+                      <p className="font-medium text-slate-600 dark:text-slate-400">No tienes notificaciones pendientes</p>
+                      <p className="text-[11px] text-slate-400">Las novedades de tus cursos, tareas y mensajes aparecerán aquí.</p>
                     </div>
                   ) : (
                     notifications
                       .filter((n) => n.userId === currentUser.id)
-                      .slice(0, 6)
-                      .map((n) => (
-                        <div
-                          key={n.id}
-                          onClick={() => {
-                            markNotificationAsRead(n.id);
-                            if (n.linkAction) setActiveTab(n.linkAction);
-                            setIsNotifOpen(false);
-                          }}
-                          className={`p-2.5 rounded-lg text-xs cursor-pointer transition-colors ${
-                            n.read
-                              ? 'bg-transparent hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-600 dark:text-slate-400'
-                              : 'bg-indigo-50/60 dark:bg-indigo-950/30 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 text-slate-800 dark:text-slate-200 font-medium'
-                          }`}
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <span className="font-semibold text-slate-900 dark:text-white text-xs">{n.title}</span>
-                            <span className="text-[10px] text-slate-400 whitespace-nowrap">
-                              {new Date(n.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </span>
+                      .slice(0, 8)
+                      .map((n) => {
+                        const dest = getNotifDestinationInfo(n);
+                        return (
+                          <div
+                            key={n.id}
+                            onClick={() => handleNotificationClick(n)}
+                            className={`p-3 rounded-xl text-xs cursor-pointer transition-all border group ${
+                              n.read
+                                ? 'bg-transparent border-transparent hover:bg-slate-50 dark:hover:bg-slate-800/60 hover:border-slate-200 dark:hover:border-slate-800 text-slate-600 dark:text-slate-400'
+                                : 'bg-indigo-50/70 dark:bg-indigo-950/40 border-indigo-100 dark:border-indigo-900/50 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 text-slate-800 dark:text-slate-200 font-medium shadow-2xs'
+                            }`}
+                          >
+                            <div className="flex items-start gap-2.5">
+                              <div className="mt-0.5 p-1.5 rounded-lg shrink-0 bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 shadow-2xs">
+                                {getNotifIcon(n)}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-start justify-between gap-1.5">
+                                  <span className="font-semibold text-slate-900 dark:text-white text-xs truncate">
+                                    {n.title}
+                                  </span>
+                                  <span className="text-[10px] text-slate-400 shrink-0 whitespace-nowrap">
+                                    {new Date(n.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  </span>
+                                </div>
+                                <p className="text-[11px] mt-0.5 leading-snug line-clamp-2 text-slate-500 dark:text-slate-400">
+                                  {n.message}
+                                </p>
+                                <div className="mt-2 flex items-center justify-between">
+                                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold transition-transform ${dest.color}`}>
+                                    <span>{dest.label}</span>
+                                    <ArrowRight className="w-2.5 h-2.5 transition-transform group-hover:translate-x-0.5" />
+                                  </span>
+                                  {!n.read && (
+                                    <span className="w-2 h-2 rounded-full bg-indigo-600 dark:bg-indigo-400 shrink-0" title="No leída"></span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
                           </div>
-                          <p className="text-[11px] mt-0.5 leading-snug line-clamp-2 text-slate-500 dark:text-slate-400">
-                            {n.message}
-                          </p>
-                        </div>
-                      ))
+                        );
+                      })
                   )}
                 </div>
               </div>

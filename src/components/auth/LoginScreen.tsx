@@ -53,7 +53,12 @@ export const LoginScreen: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col justify-between selection:bg-indigo-500 selection:text-white transition-colors">
+    <div
+      className={`min-h-screen flex flex-col justify-between selection:bg-indigo-500 selection:text-white transition-colors ${
+        theme === 'dark' ? 'dark bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'
+      }`}
+      data-theme={theme}
+    >
       {/* Top Bar with Brand & Theme Toggle */}
       <header className="w-full px-6 py-4 flex items-center justify-between border-b border-slate-200/80 dark:border-slate-800/80 bg-white/70 dark:bg-slate-900/70 backdrop-blur-md">
         <div className="flex items-center gap-3">

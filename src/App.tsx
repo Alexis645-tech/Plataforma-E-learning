@@ -11,7 +11,7 @@ import { ProfileSettings } from './components/profile/ProfileSettings';
 import { LoginScreen } from './components/auth/LoginScreen';
 
 const AppContent: React.FC = () => {
-  const { currentUser, activeTab, isAuthenticated } = useApp();
+  const { currentUser, activeTab, isAuthenticated, theme } = useApp();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // If user is not authenticated, show the institutional Login portal
@@ -48,7 +48,12 @@ const AppContent: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors">
+    <div
+      className={`min-h-screen flex flex-col transition-colors ${
+        theme === 'dark' ? 'dark bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'
+      }`}
+      data-theme={theme}
+    >
       <Navbar
         onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
         isSidebarOpen={isSidebarOpen}

@@ -183,13 +183,32 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null);
 
-  // Sync dark class on <html>
-  useEffect(() => {
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
+  const applyThemeToDOM = (t: 'light' | 'dark') => {
+    const root = document.documentElement;
+    const body = document.body;
+    const rootEl = document.getElementById('root');
+    if (t === 'dark') {
+      root.classList.add('dark');
+      body.classList.add('dark');
+      rootEl?.classList.add('dark');
+      root.setAttribute('data-theme', 'dark');
+      body.setAttribute('data-theme', 'dark');
+      rootEl?.setAttribute('data-theme', 'dark');
+      root.style.colorScheme = 'dark';
     } else {
-      document.documentElement.classList.remove('dark');
+      root.classList.remove('dark');
+      body.classList.remove('dark');
+      rootEl?.classList.remove('dark');
+      root.setAttribute('data-theme', 'light');
+      body.setAttribute('data-theme', 'light');
+      rootEl?.setAttribute('data-theme', 'light');
+      root.style.colorScheme = 'light';
     }
+  };
+
+  // Sync dark class and attributes on <html>, <body>, and #root
+  useEffect(() => {
+    applyThemeToDOM(theme);
     localStorage.setItem(STORAGE_KEYS.THEME, theme);
   }, [theme]);
 
@@ -297,7 +316,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const toggleTheme = () => {
-    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
+    setTheme((prev) => {
+      const next = prev === 'light' ? 'dark' : 'light';
+      applyThemeToDOM(next);
+      localStorage.setItem(STORAGE_KEYS.THEME, next);
+      return next;
+    });
   };
 
   const switchRole = (role: UserRole) => {
@@ -461,7 +485,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         type: 'assignment',
         read: false,
         timestamp: new Date().toISOString(),
-        linkAction: 'dashboard'
+        linkAction: 'courses'
       };
       setNotifications((prev) => [notif, ...prev]);
     }

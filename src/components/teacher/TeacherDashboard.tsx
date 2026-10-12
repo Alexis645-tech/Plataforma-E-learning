@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Course, CourseModule, Lesson, Submission, Assignment, Quiz, QuizQuestion, MediaContentType, User } from '../../types';
 import {
@@ -60,11 +60,27 @@ export const TeacherDashboard: React.FC = () => {
     createQuiz,
     updateQuiz,
     deleteQuiz,
-    setActiveTab
+    setActiveTab,
+    activeTab
   } = useApp();
 
   // Active view within Teacher: 'courses' | 'grading' | 'assignments'
-  const [teacherView, setTeacherView] = useState<'courses' | 'grading' | 'assignments'>('courses');
+  const [teacherView, setTeacherView] = useState<'courses' | 'grading' | 'assignments'>(() => {
+    if (activeTab === 'grading') return 'grading';
+    if (activeTab === 'assignments' || activeTab === 'evaluations') return 'assignments';
+    return 'courses';
+  });
+
+  // Keep teacherView in sync with activeTab changes (from notifications or sidebar)
+  useEffect(() => {
+    if (activeTab === 'grading') {
+      setTeacherView('grading');
+    } else if (activeTab === 'assignments' || activeTab === 'evaluations') {
+      setTeacherView('assignments');
+    } else if (activeTab === 'courses' || activeTab === 'dashboard') {
+      setTeacherView('courses');
+    }
+  }, [activeTab]);
 
   // Modals visibility
   const [isNewCourseModalOpen, setIsNewCourseModalOpen] = useState(false);
@@ -837,10 +853,13 @@ export const TeacherDashboard: React.FC = () => {
       {/* Internal Navigation Tabs for Teacher */}
       <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
         <button
-          onClick={() => setTeacherView('courses')}
+          onClick={() => {
+            setTeacherView('courses');
+            setActiveTab('courses');
+          }}
           className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
             teacherView === 'courses'
-              ? 'bg-indigo-600 text-white'
+              ? 'bg-indigo-600 text-white shadow-xs'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
           }`}
         >
@@ -848,10 +867,13 @@ export const TeacherDashboard: React.FC = () => {
         </button>
 
         <button
-          onClick={() => setTeacherView('grading')}
+          onClick={() => {
+            setTeacherView('grading');
+            setActiveTab('grading');
+          }}
           className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
             teacherView === 'grading'
-              ? 'bg-indigo-600 text-white'
+              ? 'bg-indigo-600 text-white shadow-xs'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
           }`}
         >
@@ -864,10 +886,13 @@ export const TeacherDashboard: React.FC = () => {
         </button>
 
         <button
-          onClick={() => setTeacherView('assignments')}
+          onClick={() => {
+            setTeacherView('assignments');
+            setActiveTab('evaluations');
+          }}
           className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
             teacherView === 'assignments'
-              ? 'bg-indigo-600 text-white'
+              ? 'bg-indigo-600 text-white shadow-xs'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
           }`}
         >

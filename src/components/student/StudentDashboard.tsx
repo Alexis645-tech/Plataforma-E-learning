@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Course, Assignment, Quiz, Submission } from '../../types';
 import { LessonViewer } from './LessonViewer';
@@ -36,6 +36,27 @@ export const StudentDashboard: React.FC = () => {
     activeTab,
     setActiveTab
   } = useApp();
+
+  // Active view filter: 'all' | 'courses' | 'assignments' | 'catalog'
+  const [studentView, setStudentView] = useState<'all' | 'courses' | 'assignments' | 'catalog'>(() => {
+    if (activeTab === 'assignments') return 'assignments';
+    if (activeTab === 'catalog') return 'catalog';
+    if (activeTab === 'courses') return 'courses';
+    return 'all';
+  });
+
+  // Sync studentView with activeTab (from notifications or navigation)
+  useEffect(() => {
+    if (activeTab === 'assignments') {
+      setStudentView('assignments');
+    } else if (activeTab === 'catalog') {
+      setStudentView('catalog');
+    } else if (activeTab === 'courses') {
+      setStudentView('courses');
+    } else if (activeTab === 'dashboard') {
+      setStudentView('all');
+    }
+  }, [activeTab]);
 
   // Active sub-views
   const [activeCourseToStudy, setActiveCourseToStudy] = useState<Course | null>(null);
@@ -187,8 +208,92 @@ export const StudentDashboard: React.FC = () => {
         </div>
       </div>
 
+      {/* Student Navigation Filter Tabs */}
+      <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2 overflow-x-auto">
+        <button
+          onClick={() => {
+            setStudentView('all');
+            setActiveTab('dashboard');
+          }}
+          className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap ${
+            studentView === 'all'
+              ? 'bg-indigo-600 text-white shadow-xs'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+          }`}
+        >
+          Resumen Campus
+        </button>
+
+        <button
+          onClick={() => {
+            setStudentView('courses');
+            setActiveTab('courses');
+          }}
+          className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap ${
+            studentView === 'courses'
+              ? 'bg-indigo-600 text-white shadow-xs'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+          }`}
+        >
+          Mis Cursos ({myCourses.length})
+        </button>
+
+        <button
+          onClick={() => {
+            setStudentView('assignments');
+            setActiveTab('assignments');
+          }}
+          className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap ${
+            studentView === 'assignments'
+              ? 'bg-indigo-600 text-white shadow-xs'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+          }`}
+        >
+          Tareas y Exámenes
+          {myAssignments.length > 0 && (
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-500 text-white">
+              {myAssignments.length}
+            </span>
+          )}
+        </button>
+
+        <button
+          onClick={() => {
+            setStudentView('catalog');
+            setActiveTab('catalog');
+          }}
+          className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap ${
+            studentView === 'catalog'
+              ? 'bg-indigo-600 text-white shadow-xs'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+          }`}
+        >
+          Catálogo Institucional ({otherCourses.length})
+        </button>
+      </div>
+
+      {/* Context banner when navigated to assignments from a notification or menu */}
+      {studentView === 'assignments' && (
+        <div className="p-3.5 rounded-xl bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 flex items-center justify-between gap-3 text-xs text-indigo-900 dark:text-indigo-200 animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <FileText className="w-4 h-4 text-indigo-600 shrink-0" />
+            <span>Mostrando tus <strong>Tareas y Evaluaciones Asignadas</strong>. Puedes subir tus entregas o resolver exámenes interactivos.</span>
+          </div>
+          <button
+            onClick={() => {
+              setStudentView('all');
+              setActiveTab('dashboard');
+            }}
+            className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline shrink-0"
+          >
+            Ver todo el campus
+          </button>
+        </div>
+      )}
+
       {/* Enrolled Courses Section */}
-      <div className="space-y-4">
+      {(studentView === 'all' || studentView === 'courses') && (
+        <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-bold text-slate-900 dark:text-white">
             Mis Cursos Matriculados
@@ -291,9 +396,11 @@ export const StudentDashboard: React.FC = () => {
           </div>
         )}
       </div>
+      )}
 
       {/* Pending Assignments & Interactive Quizzes */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {(studentView === 'all' || studentView === 'assignments') && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" id="student-assignments">
         {/* Assignments Card */}
         <div className="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 shadow-xs space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
@@ -517,9 +624,10 @@ export const StudentDashboard: React.FC = () => {
           </div>
         </div>
       </div>
+      )}
 
       {/* Catalog / Other Courses Section (Informative with Teacher Enrollment Notice) */}
-      {otherCourses.length > 0 && (
+      {(studentView === 'all' || studentView === 'catalog') && otherCourses.length > 0 && (
         <div className="p-6 rounded-2xl bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 space-y-4">
           <div className="flex items-center justify-between">
             <div>

@@ -137,7 +137,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
             </div>
             {navItems.map((item) => {
               const Icon = item.icon;
-              const isActive = activeTab === item.id;
+              const isActive =
+                activeTab === item.id ||
+                (item.id === 'evaluations' && activeTab === 'assignments') ||
+                (item.id === 'dashboard' && (activeTab === 'admin_dashboard' || (currentUser.role === 'student' && activeTab === 'courses')));
               return (
                 <button
                   key={item.id}
@@ -187,13 +190,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
             Cerrar Sesión / Cambiar Rol
           </button>
 
-          <button
-            onClick={() => setShowResetConfirm(true)}
-            className="w-full flex items-center justify-center gap-2 py-1.5 px-3 text-[11px] font-medium text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            Restaurar datos de muestra
-          </button>
+          {currentUser?.role === 'admin' && (
+            <button
+              onClick={() => setShowResetConfirm(true)}
+              className="w-full flex items-center justify-center gap-2 py-1.5 px-3 text-[11px] font-medium text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              Restaurar datos de muestra
+            </button>
+          )}
           <div className="text-[10px] text-center text-slate-400 dark:text-slate-500">
             EduSphere v1.2 · Conforme a WCAG AA
           </div>
