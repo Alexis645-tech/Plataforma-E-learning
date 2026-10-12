@@ -20,7 +20,8 @@ export const INITIAL_USERS: User[] = [
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
     bio: 'Director Académico y Administrador General de EduSphere LMS.',
     createdAt: '2026-01-15',
-    department: 'Dirección de Tecnología Educativa'
+    department: 'Dirección de Tecnología Educativa',
+    password: 'AdminEdu2026!'
   },
   {
     id: 'usr_teacher_1',
@@ -30,7 +31,8 @@ export const INITIAL_USERS: User[] = [
     avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
     bio: 'Especialista en Desarrollo de Software Full Stack y Arquitectura de Sistemas Web.',
     createdAt: '2026-02-01',
-    department: 'Facultad de Ingeniería y Computación'
+    department: 'Facultad de Ingeniería y Computación',
+    password: 'DocenteEdu2026!'
   },
   {
     id: 'usr_teacher_2',
@@ -40,7 +42,8 @@ export const INITIAL_USERS: User[] = [
     avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
     bio: 'Investigador en Inteligencia Artificial, Ciencia de Datos y Machine Learning.',
     createdAt: '2026-02-10',
-    department: 'Facultad de Ciencias Exactas'
+    department: 'Facultad de Ciencias Exactas',
+    password: 'DocenteEdu2026!'
   },
   {
     id: 'usr_student_1',
@@ -50,7 +53,8 @@ export const INITIAL_USERS: User[] = [
     avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
     bio: 'Estudiante de 4to ciclo de Ingeniería de Software con pasión por el Frontend y UX.',
     createdAt: '2026-03-01',
-    coursesEnrolled: ['crs_fullstack_1', 'crs_datascience_2', 'crs_uiux_3']
+    coursesEnrolled: ['crs_fullstack_1', 'crs_datascience_2', 'crs_uiux_3'],
+    password: 'EstudianteEdu2026!'
   },
   {
     id: 'usr_student_2',
@@ -60,7 +64,8 @@ export const INITIAL_USERS: User[] = [
     avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
     bio: 'Apasionado del desarrollo Backend, bases de datos distribuidas y microservicios.',
     createdAt: '2026-03-05',
-    coursesEnrolled: ['crs_fullstack_1']
+    coursesEnrolled: ['crs_fullstack_1'],
+    password: 'EstudianteEdu2026!'
   },
   {
     id: 'usr_student_3',
@@ -70,7 +75,8 @@ export const INITIAL_USERS: User[] = [
     avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
     bio: 'Diseñadora gráfica en transición a diseño de interfaces de producto interactivo.',
     createdAt: '2026-03-10',
-    coursesEnrolled: ['crs_uiux_3']
+    coursesEnrolled: ['crs_uiux_3'],
+    password: 'EstudianteEdu2026!'
   }
 ];
 

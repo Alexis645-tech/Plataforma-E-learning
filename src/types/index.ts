@@ -10,6 +10,7 @@ export interface User {
   createdAt: string;
   coursesEnrolled?: string[];
   department?: string;
+  password?: string;
 }
 
 export type MediaContentType = 'video' | 'pdf' | 'image' | 'article';

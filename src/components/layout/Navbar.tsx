@@ -39,11 +39,9 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, isSidebarOpen }
     logout
   } = useApp();
 
-  const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
 
-  const roleRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
   const userRef = useRef<HTMLDivElement>(null);
 
@@ -52,9 +50,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, isSidebarOpen }
   // Close dropdowns on outside click
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (roleRef.current && !roleRef.current.contains(event.target as Node)) {
-        setIsRoleDropdownOpen(false);
-      }
       if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
         setIsNotifOpen(false);
       }
@@ -113,90 +108,13 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, isSidebarOpen }
           </a>
         </div>
 
-        {/* Center Zone: Quick Role Switcher Pill */}
-        <div className="hidden md:flex items-center" ref={roleRef}>
-          <div className="relative">
-            <button
-              onClick={() => setIsRoleDropdownOpen(!isRoleDropdownOpen)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-medium text-slate-700 dark:text-slate-200 transition-colors shadow-2xs"
-            >
-              <span className="text-slate-400 dark:text-slate-500">Vista activa:</span>
-              <span className={`px-2 py-0.5 rounded font-semibold border ${getRoleBadgeStyle(currentUser.role)}`}>
-                {getRoleLabel(currentUser.role)}
-              </span>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400 ml-0.5" />
-            </button>
-
-            {isRoleDropdownOpen && (
-              <div className="absolute left-1/2 -translate-x-1/2 mt-2 w-64 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 p-2 z-50 animate-in fade-in zoom-in-95 duration-100">
-                <div className="px-2 py-1.5 text-xs font-semibold text-slate-400 dark:text-slate-500">
-                  Cambiar rol para testing:
-                </div>
-
-                <button
-                  onClick={() => {
-                    switchRole('admin');
-                    setIsRoleDropdownOpen(false);
-                  }}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
-                    currentUser.role === 'admin'
-                      ? 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 font-semibold'
-                      : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <Shield className="w-4 h-4 text-rose-600" />
-                    <div className="text-left">
-                      <div>Administrador</div>
-                      <div className="text-[10px] text-slate-400 dark:text-slate-500">Acceso total y gestión de usuarios</div>
-                    </div>
-                  </div>
-                  {currentUser.role === 'admin' && <Check className="w-3.5 h-3.5 text-rose-600" />}
-                </button>
-
-                <button
-                  onClick={() => {
-                    switchRole('teacher');
-                    setIsRoleDropdownOpen(false);
-                  }}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
-                    currentUser.role === 'teacher'
-                      ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300 font-semibold'
-                      : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <BookOpen className="w-4 h-4 text-indigo-600" />
-                    <div className="text-left">
-                      <div>Docente</div>
-                      <div className="text-[10px] text-slate-400 dark:text-slate-500">Crear cursos, módulos y calificar</div>
-                    </div>
-                  </div>
-                  {currentUser.role === 'teacher' && <Check className="w-3.5 h-3.5 text-indigo-600" />}
-                </button>
-
-                <button
-                  onClick={() => {
-                    switchRole('student');
-                    setIsRoleDropdownOpen(false);
-                  }}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
-                    currentUser.role === 'student'
-                      ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 font-semibold'
-                      : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <UserCheck className="w-4 h-4 text-emerald-600" />
-                    <div className="text-left">
-                      <div>Estudiante</div>
-                      <div className="text-[10px] text-slate-400 dark:text-slate-500">Aprender, rendir quizzes y entregar</div>
-                    </div>
-                  </div>
-                  {currentUser.role === 'student' && <Check className="w-3.5 h-3.5 text-emerald-600" />}
-                </button>
-              </div>
-            )}
+        {/* Center Zone: Authenticated Role Status (Read-only) */}
+        <div className="hidden md:flex items-center">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/80 text-xs font-medium text-slate-700 dark:text-slate-200 shadow-2xs">
+            <span className="text-slate-400 dark:text-slate-500">Sesión activa:</span>
+            <span className={`px-2 py-0.5 rounded font-semibold border ${getRoleBadgeStyle(currentUser.role)}`}>
+              {getRoleLabel(currentUser.role)}
+            </span>
           </div>
         </div>
 
@@ -336,30 +254,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, isSidebarOpen }
                   >
                     Mensajes y Chat
                   </button>
-                </div>
-
-                <div className="pt-2 mt-1.5 border-t border-slate-100 dark:border-slate-800">
-                  <div className="px-2 py-1 text-[10px] font-semibold text-slate-400">Cambiar a otro usuario:</div>
-                  <div className="max-h-36 overflow-y-auto space-y-0.5">
-                    {users.map((u) => (
-                      <button
-                        key={u.id}
-                        onClick={() => {
-                          setCurrentUser(u);
-                          setIsUserDropdownOpen(false);
-                        }}
-                        className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs text-left transition-colors ${
-                          u.id === currentUser.id
-                            ? 'bg-slate-100 dark:bg-slate-800 font-semibold text-slate-900 dark:text-white'
-                            : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/60'
-                        }`}
-                      >
-                        <img src={u.avatar} alt={u.name} className="w-5 h-5 rounded-full object-cover" />
-                        <span className="truncate flex-1">{u.name}</span>
-                        <span className="text-[10px] text-slate-400 capitalize">{u.role}</span>
-                      </button>
-                    ))}
-                  </div>
                 </div>
 
                 <div className="pt-2 mt-1.5 border-t border-slate-100 dark:border-slate-800">
