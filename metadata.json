@@ -1,0 +1,6 @@
+{
+  "name": "EduSphere LMS - Plataforma E-Learning",
+  "description": "Plataforma de aprendizaje integral con gestión de cursos multimedia, exámenes interactivos, tareas con rúbricas, chat en tiempo real y soporte para Administradores, Docentes y Estudiantes.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
