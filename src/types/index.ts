@@ -74,6 +74,11 @@ export interface RubricCriterion {
   maxPoints: number;
 }
 
+export interface AssignmentMaterial {
+  title: string;
+  url: string;
+}
+
 export interface Assignment {
   id: string;
   courseId: string;
@@ -84,6 +89,7 @@ export interface Assignment {
   dueDate: string;
   maxScore: number;
   rubric: RubricCriterion[];
+  materials?: AssignmentMaterial[];
 }
 
 export interface Course {

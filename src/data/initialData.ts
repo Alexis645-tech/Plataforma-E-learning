@@ -394,6 +394,16 @@ export const INITIAL_ASSIGNMENTS: Assignment[] = [
         description: 'Diseño limpio y responsivo con contraste WCAG adecuado y retroalimentación inmediata.',
         maxPoints: 30
       }
+    ],
+    materials: [
+      {
+        title: 'Guía de Arquitectura de APIs RESTful (PDF)',
+        url: 'https://developer.mozilla.org/es/docs/Learn_web_development/Extensions/Server-side/Express_Nodejs'
+      },
+      {
+        title: 'Repositorio Base de Componentes en GitHub',
+        url: 'https://github.com/facebook/react'
+      }
     ]
   },
   {
@@ -417,6 +427,12 @@ export const INITIAL_ASSIGNMENTS: Assignment[] = [
         title: 'Ergonomía Táctil y Accesibilidad',
         description: 'Áreas de toque superiores a 44px y contraste tipográfico comprobado.',
         maxPoints: 50
+      }
+    ],
+    materials: [
+      {
+        title: 'Guía de Accesibilidad Móvil WCAG 2.1 AA',
+        url: 'https://www.w3.org/WAI/standards-guidelines/wcag/'
       }
     ]
   }

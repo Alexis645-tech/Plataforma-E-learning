@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Course, CourseModule, Lesson, Submission, Assignment, Quiz, QuizQuestion, MediaContentType, User } from '../../types';
+import { Course, CourseModule, Lesson, Submission, Assignment, AssignmentMaterial, Quiz, QuizQuestion, MediaContentType, User } from '../../types';
 import {
   BookOpen,
   Plus,
@@ -27,7 +27,9 @@ import {
   Search,
   HelpCircle,
   RotateCcw,
-  Eye
+  Eye,
+  Link2,
+  Paperclip
 } from 'lucide-react';
 import { MediaRenderer } from '../common/MediaRenderer';
 import { resolveMediaEmbedInfo } from '../../utils/mediaUtils';
@@ -168,6 +170,9 @@ export const TeacherDashboard: React.FC = () => {
   const [asgDescription, setAsgDescription] = useState('');
   const [asgDueDate, setAsgDueDate] = useState('2026-11-15T23:59');
   const [asgCourseId, setAsgCourseId] = useState(activeCourseId);
+  const [asgMaterials, setAsgMaterials] = useState<AssignmentMaterial[]>([]);
+  const [newMaterialTitle, setNewMaterialTitle] = useState('');
+  const [newMaterialUrl, setNewMaterialUrl] = useState('');
 
   // Edit Assignment Form
   const [editingAssignment, setEditingAssignment] = useState<Assignment | null>(null);
@@ -176,6 +181,9 @@ export const TeacherDashboard: React.FC = () => {
   const [asgEditDueDate, setAsgEditDueDate] = useState('');
   const [asgEditCourseId, setAsgEditCourseId] = useState('');
   const [asgEditMaxScore, setAsgEditMaxScore] = useState(100);
+  const [asgEditMaterials, setAsgEditMaterials] = useState<AssignmentMaterial[]>([]);
+  const [newEditMaterialTitle, setNewEditMaterialTitle] = useState('');
+  const [newEditMaterialUrl, setNewEditMaterialUrl] = useState('');
 
   // Quiz Form (New & Edit)
   const [editingQuiz, setEditingQuiz] = useState<Quiz | null>(null);
@@ -498,6 +506,15 @@ export const TeacherDashboard: React.FC = () => {
     e.preventDefault();
     if (!asgTitle.trim() || !asgCourseId) return;
 
+    // Auto-include pending material input if typed
+    let finalMaterials = [...asgMaterials];
+    if (newMaterialUrl.trim()) {
+      finalMaterials.push({
+        title: newMaterialTitle.trim() || 'Material de apoyo',
+        url: newMaterialUrl.trim()
+      });
+    }
+
     createAssignment({
       courseId: asgCourseId,
       lessonId: asgLessonId || undefined,
@@ -505,6 +522,7 @@ export const TeacherDashboard: React.FC = () => {
       description: asgDescription.trim(),
       dueDate: asgDueDate,
       maxScore: 100,
+      materials: finalMaterials.length > 0 ? finalMaterials : undefined,
       rubric: [
         {
           id: `rub_${Date.now()}_1`,
@@ -524,6 +542,9 @@ export const TeacherDashboard: React.FC = () => {
     setAsgTitle('');
     setAsgDescription('');
     setAsgLessonId('');
+    setAsgMaterials([]);
+    setNewMaterialTitle('');
+    setNewMaterialUrl('');
     setIsNewAssignmentModalOpen(false);
     showToast(`Tarea "${asgTitle.trim()}" publicada exitosamente.`);
   };
@@ -536,6 +557,9 @@ export const TeacherDashboard: React.FC = () => {
     setAsgEditCourseId(asg.courseId);
     setAsgEditMaxScore(asg.maxScore || 100);
     setAsgEditLessonId(asg.lessonId || '');
+    setAsgEditMaterials(asg.materials ? [...asg.materials] : []);
+    setNewEditMaterialTitle('');
+    setNewEditMaterialUrl('');
     setIsEditAssignmentModalOpen(true);
   };
 
@@ -543,17 +567,29 @@ export const TeacherDashboard: React.FC = () => {
     e.preventDefault();
     if (!editingAssignment || !asgEditTitle.trim()) return;
 
+    let finalEditMaterials = [...asgEditMaterials];
+    if (newEditMaterialUrl.trim()) {
+      finalEditMaterials.push({
+        title: newEditMaterialTitle.trim() || 'Material de apoyo',
+        url: newEditMaterialUrl.trim()
+      });
+    }
+
     updateAssignment(editingAssignment.id, {
       title: asgEditTitle.trim(),
       description: asgEditDescription.trim(),
       dueDate: asgEditDueDate,
       courseId: asgEditCourseId,
       lessonId: asgEditLessonId || undefined,
-      maxScore: asgEditMaxScore
+      maxScore: asgEditMaxScore,
+      materials: finalEditMaterials.length > 0 ? finalEditMaterials : undefined
     });
 
     setIsEditAssignmentModalOpen(false);
     setEditingAssignment(null);
+    setAsgEditMaterials([]);
+    setNewEditMaterialTitle('');
+    setNewEditMaterialUrl('');
     showToast(`Tarea "${asgEditTitle.trim()}" actualizada exitosamente.`);
   };
 
@@ -768,6 +804,10 @@ export const TeacherDashboard: React.FC = () => {
             onClick={() => {
               setAsgTitle('');
               setAsgDescription('');
+              setAsgLessonId('');
+              setAsgMaterials([]);
+              setNewMaterialTitle('');
+              setNewMaterialUrl('');
               setAsgDueDate('2026-11-15T23:59');
               setAsgCourseId(activeCourse?.id || myCourses[0]?.id || courses[0]?.id || '');
               setIsNewAssignmentModalOpen(true);
@@ -1385,6 +1425,10 @@ export const TeacherDashboard: React.FC = () => {
                   onClick={() => {
                     setAsgTitle('');
                     setAsgDescription('');
+                    setAsgLessonId('');
+                    setAsgMaterials([]);
+                    setNewMaterialTitle('');
+                    setNewMaterialUrl('');
                     setAsgDueDate('2026-11-15T23:59');
                     setAsgCourseId(activeCourse?.id || myCourses[0]?.id || courses[0]?.id || '');
                     setIsNewAssignmentModalOpen(true);
