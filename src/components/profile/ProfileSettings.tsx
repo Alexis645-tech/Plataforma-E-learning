@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { User } from '../../types';
 import {
-  User,
+  User as UserIcon,
   Shield,
   Sparkles,
   Save,
@@ -12,7 +13,9 @@ import {
   Mail,
   Building,
   RotateCcw,
-  Lock
+  Lock,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
 const AVATAR_PRESETS = [
@@ -32,21 +35,28 @@ export const ProfileSettings: React.FC = () => {
   const [bio, setBio] = useState(currentUser.bio);
   const [department, setDepartment] = useState(currentUser.department || '');
   const [selectedAvatar, setSelectedAvatar] = useState(currentUser.avatar);
+  const [newPassword, setNewPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
   const isEmailLocked = currentUser.role === 'student' || currentUser.role === 'teacher';
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    updateUser(currentUser.id, {
+    const updates: Partial<User> = {
       name: name.trim(),
       email: isEmailLocked ? currentUser.email : email.trim(),
       bio: bio.trim(),
       department: department.trim() || undefined,
       avatar: selectedAvatar
-    });
+    };
+    if (newPassword.trim().length > 0) {
+      updates.password = newPassword.trim();
+    }
+    updateUser(currentUser.id, updates);
 
     setSavedSuccess(true);
+    setNewPassword('');
     setTimeout(() => setSavedSuccess(false), 3000);
   };
 
@@ -206,6 +216,45 @@ export const ProfileSettings: React.FC = () => {
               onChange={(e) => setBio(e.target.value)}
               className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
             />
+          </div>
+        </div>
+
+        {/* Security & Password Settings */}
+        <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+          <div className="flex items-center gap-2">
+            <Lock className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+              Seguridad y Contraseña de Acceso
+            </h2>
+          </div>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Actualiza tu contraseña para mantener protegida tu cuenta en el campus virtual.
+          </p>
+
+          <div className="max-w-md space-y-1.5">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+              Nueva Contraseña Institucional
+            </label>
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Ingresa una nueva contraseña si deseas cambiarla..."
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="w-full pl-3 pr-10 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-mono focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
+                title={showPassword ? 'Ocultar' : 'Ver'}
+              >
+                {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+              </button>
+            </div>
+            <p className="text-[11px] text-slate-400 dark:text-slate-500">
+              Déjalo en blanco si deseas conservar tu contraseña actual.
+            </p>
           </div>
         </div>
 

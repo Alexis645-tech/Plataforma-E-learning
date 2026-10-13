@@ -116,7 +116,21 @@ function getStoredItem<T>(key: string, defaultValue: T): T {
 }
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [users, setUsers] = useState<User[]>(() => getStoredItem(STORAGE_KEYS.USERS, INITIAL_USERS));
+  const [users, setUsers] = useState<User[]>(() => {
+    const loaded = getStoredItem(STORAGE_KEYS.USERS, INITIAL_USERS);
+    return loaded.map((u) => {
+      if (!u.password) {
+        const defaultPassword =
+          u.role === 'admin'
+            ? 'AdminEdu2026!'
+            : u.role === 'teacher'
+            ? 'DocenteEdu2026!'
+            : 'EstudianteEdu2026!';
+        return { ...u, password: defaultPassword };
+      }
+      return u;
+    });
+  });
   const [currentUserId, setCurrentUserId] = useState<string>(() =>
     getStoredItem(STORAGE_KEYS.CURRENT_USER_ID, INITIAL_USERS[0].id)
   );
@@ -343,10 +357,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // User CRUD
   const createUser = (userData: Omit<User, 'id' | 'createdAt'>) => {
+    const defaultPassword =
+      userData.role === 'admin'
+        ? 'AdminEdu2026!'
+        : userData.role === 'teacher'
+        ? 'DocenteEdu2026!'
+        : 'EstudianteEdu2026!';
+
     const newUser: User = {
       ...userData,
       id: `usr_${Date.now()}`,
       createdAt: new Date().toISOString().split('T')[0],
+      password: (userData.password && userData.password.trim().length > 0) ? userData.password.trim() : defaultPassword,
       avatar:
         userData.avatar ||
         `https://images.unsplash.com/photo-${1534528741775 + Math.floor(Math.random() * 500)}?w=150&auto=format&fit=crop&q=80`
@@ -358,7 +380,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       id: `notif_${Date.now()}`,
       userId: currentUser.id,
       title: 'Usuario Creado',
-      message: `Has creado exitosamente al usuario ${newUser.name} con el rol de ${newUser.role}.`,
+      message: `Has creado exitosamente al usuario ${newUser.name} con el rol de ${newUser.role}. Contraseña asignada: ${newUser.password}`,
       type: 'system',
       read: false,
       timestamp: new Date().toISOString(),
@@ -368,7 +390,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateUser = (id: string, updates: Partial<User>) => {
-    setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, ...updates } : u)));
+    setUsers((prev) =>
+      prev.map((u) => {
+        if (u.id === id) {
+          const updated = { ...u, ...updates };
+          if (updates.password !== undefined && updates.password.trim().length > 0) {
+            updated.password = updates.password.trim();
+          }
+          return updated;
+        }
+        return u;
+      })
+    );
     const target = users.find((u) => u.id === id);
     if (target) {
       const notif: AppNotification = {
