@@ -68,8 +68,10 @@ interface AppContextType {
   markAllNotificationsAsRead: () => void;
   progress: StudentProgress[];
   toggleLessonProgress: (courseId: string, lessonId: string) => void;
+  markLessonAsCompleted: (courseId: string, lessonId: string) => void;
   isLessonCompleted: (courseId: string, lessonId: string) => boolean;
   getCourseProgressPercentage: (courseId: string) => number;
+  recordCourseAccess: (courseId: string) => void;
   theme: 'light' | 'dark';
   toggleTheme: () => void;
   activeTab: string;
@@ -847,6 +849,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       };
       setNotifications((prev) => [notif, ...prev]);
     }
+
+    // Auto-update student progress if assignment belongs to a lesson
+    const relatedAsg = assignments.find((a) => a.id === data.assignmentId);
+    if (relatedAsg?.lessonId) {
+      markLessonAsCompleted(data.courseId, relatedAsg.lessonId);
+    }
   };
 
   const gradeSubmission = (
@@ -895,6 +903,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       completedAt: new Date().toISOString()
     };
     setQuizAttempts((prev) => [newAttempt, ...prev]);
+
+    // If quiz is linked to a lesson and student passed, automatically mark the lesson as completed
+    const relatedQuiz = quizzes.find((q) => q.id === attemptData.quizId);
+    if (relatedQuiz?.lessonId && attemptData.passed) {
+      markLessonAsCompleted(attemptData.courseId, relatedQuiz.lessonId);
+    }
 
     // Send instant notification
     const notif: AppNotification = {
@@ -970,6 +984,61 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return prev.map((p) =>
         p.userId === currentUser.id && p.courseId === courseId
           ? { ...p, completedLessonIds: newCompleted, lastAccessedAt: new Date().toISOString() }
+          : p
+      );
+    });
+  };
+
+  const markLessonAsCompleted = (courseId: string, lessonId: string) => {
+    setProgress((prev) => {
+      const existing = prev.find((p) => p.userId === currentUser.id && p.courseId === courseId);
+      if (!existing) {
+        return [
+          ...prev,
+          {
+            userId: currentUser.id,
+            courseId,
+            completedLessonIds: [lessonId],
+            lastAccessedAt: new Date().toISOString()
+          }
+        ];
+      }
+      if (!existing.completedLessonIds.includes(lessonId)) {
+        return prev.map((p) =>
+          p.userId === currentUser.id && p.courseId === courseId
+            ? {
+                ...p,
+                completedLessonIds: [...p.completedLessonIds, lessonId],
+                lastAccessedAt: new Date().toISOString()
+              }
+            : p
+        );
+      }
+      return prev.map((p) =>
+        p.userId === currentUser.id && p.courseId === courseId
+          ? { ...p, lastAccessedAt: new Date().toISOString() }
+          : p
+      );
+    });
+  };
+
+  const recordCourseAccess = (courseId: string) => {
+    setProgress((prev) => {
+      const existing = prev.find((p) => p.userId === currentUser.id && p.courseId === courseId);
+      if (!existing) {
+        return [
+          ...prev,
+          {
+            userId: currentUser.id,
+            courseId,
+            completedLessonIds: [],
+            lastAccessedAt: new Date().toISOString()
+          }
+        ];
+      }
+      return prev.map((p) =>
+        p.userId === currentUser.id && p.courseId === courseId
+          ? { ...p, lastAccessedAt: new Date().toISOString() }
           : p
       );
     });
@@ -1052,8 +1121,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         markAllNotificationsAsRead,
         progress,
         toggleLessonProgress,
+        markLessonAsCompleted,
         isLessonCompleted,
         getCourseProgressPercentage,
+        recordCourseAccess,
         theme,
         toggleTheme,
         activeTab,

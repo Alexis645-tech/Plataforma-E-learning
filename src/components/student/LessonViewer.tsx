@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { MediaRenderer } from '../common/MediaRenderer';
 import { QuizPlayer } from './QuizPlayer';
+import { CertificateModal } from '../common/CertificateModal';
 
 interface LessonViewerProps {
   course: Course;
@@ -40,6 +41,8 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ course, onBack, init
     modules,
     isLessonCompleted,
     toggleLessonProgress,
+    markLessonAsCompleted,
+    recordCourseAccess,
     getCourseProgressPercentage,
     assignments,
     quizzes,
@@ -82,6 +85,37 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ course, onBack, init
 
   const completed = activeLesson ? isLessonCompleted(course.id, activeLesson.id) : false;
   const progressPct = getCourseProgressPercentage(course.id);
+  const [showCertificateModal, setShowCertificateModal] = useState<boolean>(false);
+
+  useEffect(() => {
+    recordCourseAccess(course.id);
+  }, [course.id, activeLessonId, recordCourseAccess]);
+
+  const currentLessonIndex = allLessons.findIndex((l) => l.id === activeLesson?.id);
+  const prevLesson = currentLessonIndex > 0 ? allLessons[currentLessonIndex - 1] : null;
+  const nextLesson =
+    currentLessonIndex >= 0 && currentLessonIndex < allLessons.length - 1
+      ? allLessons[currentLessonIndex + 1]
+      : null;
+
+  const handleNextLessonWithCompletion = () => {
+    if (activeLesson) {
+      markLessonAsCompleted(course.id, activeLesson.id);
+    }
+    if (nextLesson) {
+      setActiveLessonId(nextLesson.id);
+      setActiveResourceTab(0);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handlePrevLesson = () => {
+    if (prevLesson) {
+      setActiveLessonId(prevLesson.id);
+      setActiveResourceTab(0);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   if (!activeLesson) {
     return (
@@ -591,6 +625,103 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ course, onBack, init
               </div>
             )}
           </div>
+
+          {/* Bottom Classroom Navigation Bar */}
+          <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 sm:p-5 shadow-xs space-y-4">
+            {/* Completion Banner if 100% */}
+            {progressPct === 100 && (
+              <div className="p-4 rounded-xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-indigo-500/10 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                    <Award className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                      ¡Felicitaciones! Has completado el 100% del curso
+                    </h4>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      Todo tu progreso está guardado y tu certificado oficial de aprobación está listo.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowCertificateModal(true)}
+                  className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-colors shrink-0"
+                >
+                  <Award className="w-3.5 h-3.5" />
+                  Ver Certificado Oficial
+                </button>
+              </div>
+            )}
+
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+              {/* Previous Lesson Button */}
+              {prevLesson ? (
+                <button
+                  type="button"
+                  onClick={handlePrevLesson}
+                  className="inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold transition-colors"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>Anterior: <strong className="font-normal opacity-80">{prevLesson.title}</strong></span>
+                </button>
+              ) : (
+                <div />
+              )}
+
+              <div className="flex items-center gap-2 self-end sm:self-auto">
+                {/* Complete current toggle */}
+                <button
+                  type="button"
+                  onClick={() => toggleLessonProgress(course.id, activeLesson.id)}
+                  className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors ${
+                    completed
+                      ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                      : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200'
+                  }`}
+                >
+                  {completed ? (
+                    <>
+                      <CheckCircle className="w-4 h-4 text-emerald-600" />
+                      Clase Completada
+                    </>
+                  ) : (
+                    <>
+                      <Circle className="w-4 h-4 text-slate-400" />
+                      Marcar Clase como Completada
+                    </>
+                  )}
+                </button>
+
+                {/* Next Lesson / Completion Action */}
+                {nextLesson ? (
+                  <button
+                    type="button"
+                    onClick={handleNextLessonWithCompletion}
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-xs transition-colors"
+                  >
+                    <span>Completar y Siguiente</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!completed) {
+                        markLessonAsCompleted(course.id, activeLesson.id);
+                      }
+                      setShowCertificateModal(true);
+                    }}
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-colors"
+                  >
+                    <Award className="w-4 h-4" />
+                    <span>Finalizar Curso y Ver Diploma</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Course Outline & Modules Sidebar */}
@@ -783,6 +914,15 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ course, onBack, init
             </form>
           </div>
         </div>
+      )}
+
+      {/* Certificate Modal */}
+      {showCertificateModal && (
+        <CertificateModal
+          course={course}
+          student={currentUser}
+          onClose={() => setShowCertificateModal(false)}
+        />
       )}
     </div>
   );

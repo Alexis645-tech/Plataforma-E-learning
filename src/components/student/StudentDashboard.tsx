@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { Course, Assignment, Quiz, Submission } from '../../types';
 import { LessonViewer } from './LessonViewer';
 import { QuizPlayer } from './QuizPlayer';
+import { CertificateModal } from '../common/CertificateModal';
 import {
   BookOpen,
   PlayCircle,
@@ -63,6 +64,7 @@ export const StudentDashboard: React.FC = () => {
   const [activeLessonToOpen, setActiveLessonToOpen] = useState<string | undefined>(undefined);
   const [activeQuizToTake, setActiveQuizToTake] = useState<Quiz | null>(null);
   const [activeAssignmentToSubmit, setActiveAssignmentToSubmit] = useState<Assignment | null>(null);
+  const [certificateCourse, setCertificateCourse] = useState<Course | null>(null);
 
   // Submission Form State
   const [submissionText, setSubmissionText] = useState('');
@@ -362,9 +364,10 @@ export const StudentDashboard: React.FC = () => {
                       {/* Progress Bar */}
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-[11px] font-medium text-slate-600 dark:text-slate-300">
-                          Avance
+                          {progressPct === 100 ? 'Estado del curso' : 'Avance del estudiante'}
                         </span>
-                        <span className="font-mono text-[11px] font-bold text-emerald-600">
+                        <span className="font-mono text-[11px] font-bold text-emerald-600 flex items-center gap-1">
+                          {progressPct === 100 && <CheckCircle2 className="w-3 h-3 text-emerald-500" />}
                           {progressPct}%
                         </span>
                       </div>
@@ -382,13 +385,37 @@ export const StudentDashboard: React.FC = () => {
                       </div>
                     </div>
 
-                    <button
-                      onClick={() => setActiveCourseToStudy(course)}
-                      className="w-full py-2 px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 shadow-xs transition-colors"
-                    >
-                      <PlayCircle className="w-3.5 h-3.5" />
-                      Entrar al Aula Virtual
-                    </button>
+                    <div className="space-y-2 pt-1">
+                      {progressPct === 100 ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => setCertificateCourse(course)}
+                            className="w-full py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 shadow-xs transition-colors"
+                          >
+                            <Award className="w-3.5 h-3.5" />
+                            Ver Certificado Oficial
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setActiveCourseToStudy(course)}
+                            className="w-full py-1.5 px-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-medium flex items-center justify-center gap-1.5 transition-colors"
+                          >
+                            <PlayCircle className="w-3.5 h-3.5" />
+                            Repasar Clases del Curso
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setActiveCourseToStudy(course)}
+                          className="w-full py-2 px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 shadow-xs transition-colors"
+                        >
+                          <PlayCircle className="w-3.5 h-3.5" />
+                          {progressPct > 0 ? 'Continuar Curso' : 'Iniciar Curso'}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
@@ -785,6 +812,15 @@ export const StudentDashboard: React.FC = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Certificate Modal */}
+      {certificateCourse && (
+        <CertificateModal
+          course={certificateCourse}
+          student={currentUser}
+          onClose={() => setCertificateCourse(null)}
+        />
       )}
     </div>
   );
