@@ -1,8 +1,29 @@
+# Dependencies
 node_modules/
+.pnpm-store/
+
+# Production build outputs
 build/
 dist/
 coverage/
+
+# OS and runtime logs
 .DS_Store
+Thumbs.db
 *.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# ==============================================================
+# SEGURIDAD Y CREDENCIALES: NUNCA SUBIR A GITHUB / CONTROL DE VERSIONES
+# Las credenciales reales, claves de MongoDB y tokens solo deben residir
+# en tu archivo .env local y en las Variables de Entorno de Vercel.
+# ==============================================================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 .env*
 !.env.example

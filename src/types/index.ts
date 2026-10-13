@@ -11,6 +11,8 @@ export interface User {
   coursesEnrolled?: string[];
   department?: string;
   password?: string;
+  isPasswordHashed?: boolean;
+  passwordHash?: string;
 }
 
 export type MediaContentType = 'video' | 'pdf' | 'image' | 'article';

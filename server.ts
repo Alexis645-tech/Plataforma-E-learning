@@ -1,26 +1,15 @@
-import express, { Request, Response } from 'express';
+import express from 'express';
 import http from 'http';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import { app } from './server/app';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const app = express();
 const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
-
-app.use(express.json({ limit: '25mb' }));
-
-// Health Check
-app.get('/api/health', (req: Request, res: Response) => {
-  res.json({
-    status: 'ok',
-    service: 'EduSphere Learning Management System',
-    timestamp: new Date().toISOString()
-  });
-});
 
 // Setup Vite in Dev or serve static in Prod
 async function startServer() {
@@ -41,14 +30,14 @@ async function startServer() {
     const distPath = path.resolve(__dirname, 'dist');
     if (fs.existsSync(distPath)) {
       app.use(express.static(distPath));
-      app.get('*', (req: Request, res: Response) => {
+      app.get('*', (req: any, res: any) => {
         res.sendFile(path.resolve(distPath, 'index.html'));
       });
     }
   }
 
   server.listen(PORT, () => {
-    console.log(`EduSphere LMS server running on http://0.0.0.0:${PORT}`);
+    console.log(`EduSphere LMS server with MongoDB API running on http://0.0.0.0:${PORT}`);
   });
 }
 

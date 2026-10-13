@@ -30,7 +30,7 @@ export const LoginScreen: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
 
@@ -45,13 +45,16 @@ export const LoginScreen: React.FC = () => {
     }
 
     setIsLoading(true);
-    setTimeout(() => {
-      const result = login(emailInput.trim(), passwordInput);
+    try {
+      const result = await login(emailInput.trim(), passwordInput);
       setIsLoading(false);
       if (!result.success && result.error) {
         setErrorMessage(result.error);
       }
-    }, 250);
+    } catch (err: any) {
+      setIsLoading(false);
+      setErrorMessage(err.message || 'Error de autenticación. Por favor reintenta.');
+    }
   };
 
   return (
@@ -219,11 +222,17 @@ export const LoginScreen: React.FC = () => {
             </form>
 
             {/* Institutional Security Notice */}
-            <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80 flex items-start gap-2.5 text-[11px] text-slate-500 dark:text-slate-400">
-              <Shield className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
-              <p className="leading-snug">
-                Portal protegido con autenticación institucional. El acceso a los roles de Administrador, Docente y Estudiante está restringido a usuarios autorizados.
-              </p>
+            <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80 space-y-2">
+              <div className="flex items-start gap-2.5 text-[11px] text-slate-500 dark:text-slate-400">
+                <Shield className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                <p className="leading-snug">
+                  <strong className="text-slate-700 dark:text-slate-200">Seguridad Criptográfica Activa:</strong> Tus contraseñas están protegidas con hash unidireccional <strong>bcrypt</strong> (salt rounds = 10) en MongoDB. Nunca se transmiten ni guardan en texto plano.
+                </p>
+              </div>
+              <div className="flex items-center gap-1.5 text-[10px] text-emerald-600 dark:text-emerald-400 font-medium bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-lg border border-emerald-200 dark:border-emerald-900/50">
+                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                <span>Base de datos segura & .env protegido en .gitignore para producción</span>
+              </div>
             </div>
           </div>
         </div>

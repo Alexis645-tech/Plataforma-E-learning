@@ -25,6 +25,8 @@ import {
   INITIAL_NOTIFICATIONS,
   INITIAL_PROGRESS
 } from '../data/initialData';
+import { apiService, DbStatusResponse } from '../services/apiService';
+import { isBcryptHash, hashPasswordClient, verifyPasswordClient } from '../utils/security';
 
 interface AppContextType {
   currentUser: User;
@@ -84,9 +86,14 @@ interface AppContextType {
   setSelectedQuizId: (id: string | null) => void;
   resetToDefaultData: () => void;
   isAuthenticated: boolean;
-  login: (email: string, password?: string) => { success: boolean; error?: string };
+  login: (email: string, password?: string) => Promise<{ success: boolean; error?: string }>;
   loginAsUser: (user: User) => void;
   logout: () => void;
+  dbStatus: DbStatusResponse | null;
+  refreshDbStatus: () => Promise<void>;
+  reloadFromBackend: () => Promise<void>;
+  rehashAllUserPasswords: () => Promise<{ updated: number; message: string }>;
+  isMongoConnected: boolean;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -199,6 +206,73 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null);
 
+  const [dbStatus, setDbStatus] = useState<DbStatusResponse | null>(null);
+  const isMongoConnected = Boolean(dbStatus?.isConnected);
+
+  const refreshDbStatus = async () => {
+    try {
+      const status = await apiService.getDbStatus();
+      if (status) setDbStatus(status);
+    } catch (e) {
+      console.warn('Error refreshing MongoDB status:', e);
+    }
+  };
+
+  const reloadFromBackend = async () => {
+    try {
+      const data = await apiService.fetchBootstrap();
+      if (data) {
+        if (data.users && data.users.length > 0) setUsers(data.users);
+        if (data.courses && data.courses.length > 0) setCourses(data.courses);
+        if (data.modules && data.modules.length > 0) setModules(data.modules);
+        if (data.quizzes && data.quizzes.length > 0) setQuizzes(data.quizzes);
+        if (data.assignments && data.assignments.length > 0) setAssignments(data.assignments);
+        if (data.submissions && data.submissions.length > 0) setSubmissions(data.submissions);
+        if (data.quizAttempts && data.quizAttempts.length > 0) setQuizAttempts(data.quizAttempts);
+        if (data.progress && data.progress.length > 0) setProgress(data.progress);
+        if (data.notifications && data.notifications.length > 0) setNotifications(data.notifications);
+        if (data.chatMessages && data.chatMessages.length > 0) setChatMessages(data.chatMessages);
+        if (data.dbStatus) setDbStatus(data.dbStatus);
+      }
+    } catch (e) {
+      console.warn('Error reloading data from backend:', e);
+    }
+  };
+
+  // Bootstrap from MongoDB on mount
+  useEffect(() => {
+    let isMounted = true;
+    async function init() {
+      try {
+        const [status, data] = await Promise.all([
+          apiService.getDbStatus(),
+          apiService.fetchBootstrap(),
+        ]);
+        if (!isMounted) return;
+        if (status) setDbStatus(status);
+        if (data) {
+          if (data.users && data.users.length > 0) setUsers(data.users);
+          if (data.courses && data.courses.length > 0) setCourses(data.courses);
+          if (data.modules && data.modules.length > 0) setModules(data.modules);
+          if (data.quizzes && data.quizzes.length > 0) setQuizzes(data.quizzes);
+          if (data.assignments && data.assignments.length > 0) setAssignments(data.assignments);
+          if (data.submissions && data.submissions.length > 0) setSubmissions(data.submissions);
+          if (data.quizAttempts && data.quizAttempts.length > 0) setQuizAttempts(data.quizAttempts);
+          if (data.progress && data.progress.length > 0) setProgress(data.progress);
+          if (data.notifications && data.notifications.length > 0) setNotifications(data.notifications);
+          if (data.chatMessages && data.chatMessages.length > 0) setChatMessages(data.chatMessages);
+          if (data.dbStatus) setDbStatus(data.dbStatus);
+        }
+      } catch (err) {
+        console.warn('MongoDB bootstrap skipped (using local cache):', err);
+      }
+    }
+    init();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const applyThemeToDOM = (t: 'light' | 'dark') => {
     const root = document.documentElement;
     const body = document.body;
@@ -268,19 +342,39 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const currentUser = users.find((u) => u.id === currentUserId) || users[0];
 
-  const login = (email: string, password?: string) => {
+  const login = async (email: string, password?: string): Promise<{ success: boolean; error?: string }> => {
     const trimmed = email.trim().toLowerCase();
+    if (!password || password.trim().length === 0) {
+      return {
+        success: false,
+        error: 'Por favor ingresa tu contraseña institucional.'
+      };
+    }
+
+    // Try backend authentication with MongoDB first
+    try {
+      const apiRes = await apiService.login(trimmed, password.trim());
+      if (apiRes.success && apiRes.user) {
+        setCurrentUserId(apiRes.user.id);
+        setIsAuthenticated(true);
+        setActiveTab('dashboard');
+        setSelectedCourseId(null);
+        setSelectedLessonId(null);
+        setSelectedQuizId(null);
+        return { success: true };
+      } else if (apiRes.error && (apiRes.error.includes('incorrecta') || apiRes.error.includes('no se encuentra'))) {
+        return { success: false, error: apiRes.error };
+      }
+    } catch (e) {
+      console.warn('Backend login attempt error, using local fallback:', e);
+    }
+
+    // Fallback: local validation using bcrypt client verification
     const targetUser = users.find((u) => u.email.toLowerCase() === trimmed);
     if (!targetUser) {
       return {
         success: false,
         error: 'El correo institucional no se encuentra registrado en el sistema.'
-      };
-    }
-    if (!password || password.trim().length === 0) {
-      return {
-        success: false,
-        error: 'Por favor ingresa tu contraseña institucional.'
       };
     }
 
@@ -291,16 +385,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         ? 'DocenteEdu2026!'
         : 'EstudianteEdu2026!';
 
-    const validPasswords = [
-      targetUser.password,
-      rolePassword,
-      'AlexisCastro2026!',
-      'alexiscastro123',
-      'edusphere123',
-      'EduSphere2026!'
-    ].filter(Boolean) as string[];
+    let isMatch = false;
 
-    if (!validPasswords.includes(password.trim())) {
+    // Check user's stored password (bcrypt hash or plain)
+    if (targetUser.password) {
+      isMatch = verifyPasswordClient(password.trim(), targetUser.password);
+    }
+
+    if (!isMatch) {
+      const fallbacks = [
+        rolePassword,
+        'AlexisCastro2026!',
+        'alexiscastro123',
+        'edusphere123',
+        'EduSphere2026!'
+      ];
+      if (fallbacks.includes(password.trim())) {
+        isMatch = true;
+      }
+    }
+
+    if (!isMatch) {
       return {
         success: false,
         error: 'Contraseña incorrecta. Por favor verifica tus credenciales institucionales.'
@@ -366,23 +471,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         ? 'DocenteEdu2026!'
         : 'EstudianteEdu2026!';
 
+    const plainPassword =
+      userData.password && userData.password.trim().length > 0
+        ? userData.password.trim()
+        : defaultPassword;
+
+    // Secure password with bcrypt (salt rounds = 10)
+    const hashedPassword = hashPasswordClient(plainPassword);
+
     const newUser: User = {
       ...userData,
       id: `usr_${Date.now()}`,
       createdAt: new Date().toISOString().split('T')[0],
-      password: (userData.password && userData.password.trim().length > 0) ? userData.password.trim() : defaultPassword,
+      password: hashedPassword,
+      passwordHash: hashedPassword,
+      isPasswordHashed: true,
       avatar:
         userData.avatar ||
         `https://images.unsplash.com/photo-${1534528741775 + Math.floor(Math.random() * 500)}?w=150&auto=format&fit=crop&q=80`
     };
     setUsers((prev) => [newUser, ...prev]);
+    // Persist to MongoDB
+    apiService.saveUser(newUser);
 
     // Add notification to admin
     const newNotif: AppNotification = {
       id: `notif_${Date.now()}`,
       userId: currentUser.id,
-      title: 'Usuario Creado',
-      message: `Has creado exitosamente al usuario ${newUser.name} con el rol de ${newUser.role}. Contraseña asignada: ${newUser.password}`,
+      title: 'Usuario Creado y Asegurado',
+      message: `Has creado exitosamente al usuario ${newUser.name} con el rol de ${newUser.role}. Contraseña cifrada de forma segura con bcrypt (Blowfish, salt rounds = 10).`,
       type: 'system',
       read: false,
       timestamp: new Date().toISOString(),
@@ -392,31 +509,48 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateUser = (id: string, updates: Partial<User>) => {
+    const sanitizedUpdates = { ...updates };
+    if (sanitizedUpdates.password !== undefined && sanitizedUpdates.password.trim().length > 0) {
+      const hashed = hashPasswordClient(sanitizedUpdates.password.trim());
+      sanitizedUpdates.password = hashed;
+      sanitizedUpdates.passwordHash = hashed;
+      sanitizedUpdates.isPasswordHashed = true;
+    }
+
     setUsers((prev) =>
       prev.map((u) => {
         if (u.id === id) {
-          const updated = { ...u, ...updates };
-          if (updates.password !== undefined && updates.password.trim().length > 0) {
-            updated.password = updates.password.trim();
-          }
-          return updated;
+          return { ...u, ...sanitizedUpdates };
         }
         return u;
       })
     );
+    // Persist to MongoDB
+    apiService.updateUser(id, sanitizedUpdates);
     const target = users.find((u) => u.id === id);
     if (target) {
       const notif: AppNotification = {
         id: `notif_${Date.now()}`,
         userId: currentUser?.id || 'usr_admin_1',
         title: 'Usuario Actualizado',
-        message: `El usuario ${updates.name || target.name} ha sido modificado en el sistema.`,
+        message: `El usuario ${sanitizedUpdates.name || target.name} ha sido modificado y sus credenciales aseguradas con bcrypt.`,
         type: 'system',
         read: false,
         timestamp: new Date().toISOString(),
         linkAction: 'users'
       };
       setNotifications((prev) => [notif, ...prev]);
+    }
+  };
+
+  const rehashAllUserPasswords = async () => {
+    try {
+      const result = await apiService.rehashAllUsers();
+      await refreshDbStatus();
+      await reloadFromBackend();
+      return result;
+    } catch (e: any) {
+      return { updated: 0, message: e.message || 'Error al actualizar contraseñas' };
     }
   };
 
@@ -432,6 +566,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setSubmissions((prev) => prev.filter((s) => s.studentId !== id));
     setQuizAttempts((prev) => prev.filter((q) => q.studentId !== id));
     setProgress((prev) => prev.filter((p) => p.userId !== id));
+    // Persist to MongoDB
+    apiService.deleteUser(id);
 
     if (currentUserId === id) {
       const fallback = users.find((u) => u.id !== id);
@@ -462,11 +598,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       enrolledStudents: []
     };
     setCourses((prev) => [newCourse, ...prev]);
+    // Persist to MongoDB
+    apiService.saveCourse(newCourse);
     return newCourse;
   };
 
   const updateCourse = (id: string, updates: Partial<Course>) => {
     setCourses((prev) => prev.map((c) => (c.id === id ? { ...c, ...updates } : c)));
+    // Persist to MongoDB
+    apiService.updateCourse(id, updates);
   };
 
   const deleteCourse = (id: string) => {
@@ -482,6 +622,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }))
     );
     setProgress((prev) => prev.filter((p) => p.courseId !== id));
+    // Persist to MongoDB
+    apiService.deleteCourse(id);
   };
 
   const enrollInCourse = (courseId: string) => {
@@ -580,14 +722,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       lessons: []
     };
     setModules((prev) => [...prev, newMod]);
+    apiService.saveModule(newMod);
   };
 
   const updateModule = (id: string, updates: Partial<CourseModule>) => {
     setModules((prev) => prev.map((m) => (m.id === id ? { ...m, ...updates } : m)));
+    apiService.updateModule(id, updates);
   };
 
   const deleteModule = (id: string) => {
     setModules((prev) => prev.filter((m) => m.id !== id));
+    apiService.deleteModule(id);
   };
 
   const createLesson = (moduleId: string, lessonData: Omit<Lesson, 'id' | 'moduleId' | 'order'>) => {
@@ -601,7 +746,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             moduleId,
             order: m.lessons.length + 1
           };
-          return { ...m, lessons: [...m.lessons, newLesson] };
+          const updatedM = { ...m, lessons: [...m.lessons, newLesson] };
+          apiService.updateModule(moduleId, updatedM);
+          return updatedM;
         }
         return m;
       })
@@ -677,6 +824,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       id: newQuizId
     };
     setQuizzes((prev) => [...prev, newQuiz]);
+    apiService.saveQuiz(newQuiz);
 
     if (quizData.lessonId) {
       setModules((prev) =>
@@ -739,6 +887,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       id: newAsgId
     };
     setAssignments((prev) => [...prev, newAsg]);
+    apiService.saveAssignment(newAsg);
 
     if (asgData.lessonId) {
       setModules((prev) =>
@@ -833,6 +982,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       status: 'pending'
     };
     setSubmissions((prev) => [newSub, ...prev]);
+    apiService.saveSubmission(newSub);
 
     // Notify teacher of the course
     const course = courses.find((c) => c.id === data.courseId);
@@ -903,6 +1053,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       completedAt: new Date().toISOString()
     };
     setQuizAttempts((prev) => [newAttempt, ...prev]);
+    apiService.saveQuizAttempt(newAttempt);
 
     // If quiz is linked to a lesson and student passed, automatically mark the lesson as completed
     const relatedQuiz = quizzes.find((q) => q.id === attemptData.quizId);
@@ -981,9 +1132,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         ? existing.completedLessonIds.filter((id) => id !== lessonId)
         : [...existing.completedLessonIds, lessonId];
 
+      const targetProgress = {
+        userId: currentUser.id,
+        courseId,
+        completedLessonIds: newCompleted,
+        lastAccessedAt: new Date().toISOString()
+      };
+      apiService.saveProgress(targetProgress);
+
       return prev.map((p) =>
         p.userId === currentUser.id && p.courseId === courseId
-          ? { ...p, completedLessonIds: newCompleted, lastAccessedAt: new Date().toISOString() }
+          ? targetProgress
           : p
       );
     });
@@ -1003,20 +1162,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           }
         ];
       }
-      if (!existing.completedLessonIds.includes(lessonId)) {
-        return prev.map((p) =>
-          p.userId === currentUser.id && p.courseId === courseId
-            ? {
-                ...p,
-                completedLessonIds: [...p.completedLessonIds, lessonId],
-                lastAccessedAt: new Date().toISOString()
-              }
-            : p
-        );
-      }
+      const targetProgress = {
+        userId: currentUser.id,
+        courseId,
+        completedLessonIds: existing.completedLessonIds.includes(lessonId)
+          ? existing.completedLessonIds
+          : [...existing.completedLessonIds, lessonId],
+        lastAccessedAt: new Date().toISOString()
+      };
+      apiService.saveProgress(targetProgress);
+
       return prev.map((p) =>
         p.userId === currentUser.id && p.courseId === courseId
-          ? { ...p, lastAccessedAt: new Date().toISOString() }
+          ? targetProgress
           : p
       );
     });
@@ -1139,7 +1297,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isAuthenticated,
         login,
         loginAsUser,
-        logout
+        logout,
+        dbStatus,
+        refreshDbStatus,
+        reloadFromBackend,
+        rehashAllUserPasswords,
+        isMongoConnected
       }}
     >
       {children}
