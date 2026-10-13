@@ -13,7 +13,9 @@ import {
   Moon,
   HelpCircle,
   X,
-  CheckCircle2
+  CheckCircle2,
+  Linkedin,
+  ExternalLink
 } from 'lucide-react';
 
 export const LoginScreen: React.FC = () => {
@@ -250,12 +252,20 @@ export const LoginScreen: React.FC = () => {
               Por políticas de seguridad institucional, las credenciales son administradas exclusivamente por la Dirección de Tecnología Educativa de Alexis Castro Academy.
             </p>
             <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-              Si requieres asistencia para recuperar tu acceso o restablecer tu contraseña, contacta al Administrador institucional en:
-              <br />
-              <span className="font-semibold text-indigo-600 dark:text-indigo-400 mt-1 inline-block">
-                soporte@edusphere.edu
-              </span>
+              Si requieres asistencia para recuperar tu acceso, restablecer tus credenciales o deseas contactar directamente al Administrador:
             </p>
+            <div className="pt-1">
+              <a
+                href="https://www.linkedin.com/in/alexis-castro-ba1384203"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-[#0077B5] hover:bg-[#005E93] text-white text-xs font-semibold shadow-xs transition-colors group"
+              >
+                <Linkedin className="w-4 h-4 fill-white" />
+                <span>Contactar a Alexis Castro en LinkedIn</span>
+                <ExternalLink className="w-3.5 h-3.5 opacity-80 group-hover:translate-x-0.5 transition-transform" />
+              </a>
+            </div>
             <div className="pt-2 flex justify-end">
               <button
                 onClick={() => setShowHelpModal(false)}
