@@ -53,10 +53,11 @@ apiRouter.get('/db/status', async (req: Request, res: Response) => {
   res.json(status);
 });
 
-apiRouter.post('/db/retry', async (req: Request, res: Response) => {
+const handleDbRetry = async (req: Request, res: Response) => {
   try {
+    console.log('[API Routes] Solicitud /db/retry recibida. Forzando reconexión a MongoDB Atlas...');
     resetMongoClientCache();
-    const db = await getMongoDb();
+    const db = await getMongoDb(true);
     const status = await getDbStatus();
     res.json({
       success: Boolean(db),
@@ -66,9 +67,13 @@ apiRouter.post('/db/retry', async (req: Request, res: Response) => {
         : status.connectionDiagnosis || 'Error de conexión a MongoDB Atlas.',
     });
   } catch (err: any) {
+    console.error('[API Routes] Error durante /db/retry:', err);
     res.status(500).json({ success: false, error: err.message });
   }
-});
+};
+
+apiRouter.post('/db/retry', handleDbRetry);
+apiRouter.get('/db/retry', handleDbRetry);
 
 apiRouter.post('/db/seed', async (req: Request, res: Response) => {
   const force = Boolean(req.body?.force);

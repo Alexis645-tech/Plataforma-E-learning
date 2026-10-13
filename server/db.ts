@@ -92,18 +92,48 @@ declare global {
 let isConnecting = false;
 let lastConnectionError: string | null = null;
 let lastFailedAttemptTime = 0;
-const RETRY_COOLDOWN_MS = 15000;
+const RETRY_COOLDOWN_MS = 10000;
+
+/**
+ * Inspects all possible environment variable names used for MongoDB connection
+ * and extracts clean value and diagnostic info.
+ */
+export function getDetectedEnvVarInfo(): { key: string | null; value: string; rawLength: number } {
+  const candidateKeys = [
+    'MONGODB_URI',
+    'mongodb_uri',
+    'MONGODB_URL',
+    'mongodb_url',
+    'MONGO_URI',
+    'mongo_uri',
+    'DATABASE_URL',
+    'database_url'
+  ];
+
+  for (const key of candidateKeys) {
+    const rawVal = process.env[key];
+    if (rawVal && typeof rawVal === 'string' && rawVal.trim().length > 0) {
+      let cleaned = rawVal.trim();
+      // Strip surrounding single or double quotes if entered in Vercel UI or .env
+      if (
+        (cleaned.startsWith('"') && cleaned.endsWith('"')) ||
+        (cleaned.startsWith("'") && cleaned.endsWith("'"))
+      ) {
+        cleaned = cleaned.slice(1, -1).trim();
+      }
+      return { key, value: cleaned, rawLength: rawVal.length };
+    }
+  }
+
+  return { key: null, value: '', rawLength: 0 };
+}
 
 export function getMongoUri(): string {
-  return (
-    process.env.MONGODB_URI ||
-    process.env.DATABASE_URL ||
-    process.env.MONGO_URL ||
-    ''
-  ).trim();
+  return getDetectedEnvVarInfo().value;
 }
 
 export function resetMongoClientCache() {
+  console.log('[MongoDB Server] 🔄 Restableciendo caché de MongoClient y contadores de error...');
   global._mongoClientPromise = undefined;
   global._mongoClient = undefined;
   lastConnectionError = null;
@@ -112,19 +142,30 @@ export function resetMongoClientCache() {
 
 export async function getMongoClient(forceReconnect = false): Promise<MongoClient | null> {
   if (forceReconnect) {
+    console.log('[MongoDB Server] ⚡ Reintento forzado solicitado (forceReconnect = true).');
     resetMongoClientCache();
   }
 
-  const uri = getMongoUri();
+  const envInfo = getDetectedEnvVarInfo();
+  const uri = envInfo.value;
+
+  // 1. Si la variable llega vacía o no existe en process.env
   if (!uri) {
+    console.warn('[MongoDB Server] ⚠️ Variable de entorno MONGODB_URI está VACÍA o NO ENCONTRADA en process.env.');
+    console.warn('[MongoDB Server] La plataforma operará en Modo Local (almacenamiento en memoria).');
+    const availableEnvKeys = Object.keys(process.env).filter(
+      (k) => !k.includes('KEY') && !k.includes('SECRET') && !k.includes('TOKEN')
+    );
+    console.warn(`[MongoDB Server] Variables visibles en este entorno de servidor: [${availableEnvKeys.join(', ')}]`);
     return null;
   }
 
-  // Return existing active client connection immediately
+  // 2. Si ya hay un cliente conectado y activo, reutilizarlo inmediatamente
   if (global._mongoClient) {
     return global._mongoClient;
   }
 
+  // 3. Si hay una promesa de conexión en progreso, aguardar
   if (global._mongoClientPromise) {
     try {
       const client = await global._mongoClientPromise;
@@ -132,18 +173,22 @@ export async function getMongoClient(forceReconnect = false): Promise<MongoClien
         global._mongoClient = client;
         return client;
       }
-    } catch {
+    } catch (err: any) {
+      console.warn('[MongoDB Server] ⚠️ Promesa previa falló, limpiando caché:', err?.message || err);
       global._mongoClientPromise = undefined;
       global._mongoClient = undefined;
     }
   }
 
-  // If a recent connection attempt failed, don't stall incoming requests; wait for cooldown or explicit retry
+  // Si falló recientemente y no es un reintento forzado, aplicar cooldown para no saturar la función
   if (!forceReconnect && Date.now() - lastFailedAttemptTime < RETRY_COOLDOWN_MS) {
+    const remaining = Math.ceil((RETRY_COOLDOWN_MS - (Date.now() - lastFailedAttemptTime)) / 1000);
+    console.log(`[MongoDB Server] ⏳ En período de enfriamiento tras error previo (${remaining}s restantes para reintento automático).`);
     return null;
   }
 
   if (isConnecting) {
+    console.log('[MongoDB Server] ⏳ Conexión en progreso por otra solicitud concurrente...');
     return null;
   }
 
@@ -151,9 +196,16 @@ export async function getMongoClient(forceReconnect = false): Promise<MongoClien
     isConnecting = true;
     lastConnectionError = null;
 
+    const maskedUri = uri.replace(/(mongodb(?:\+srv)?:\/\/[^:]+:)([^@]+)(@.+)/, '$1******$3');
+    console.log('----------------------------------------------------');
+    console.log(`[MongoDB Server] 🚀 Iniciando MongoClient.connect()`);
+    console.log(`[MongoDB Server] Variable detectada: ${envInfo.key} (Longitud: ${uri.length} caracteres)`);
+    console.log(`[MongoDB Server] Destino enmascarado: ${maskedUri}`);
+    console.log('----------------------------------------------------');
+
     const client = new MongoClient(uri, {
       maxPoolSize: 10,
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 6000,
       connectTimeoutMS: 10000,
     });
 
@@ -165,19 +217,32 @@ export async function getMongoClient(forceReconnect = false): Promise<MongoClien
     lastConnectionError = null;
     isConnecting = false;
     lastFailedAttemptTime = 0;
+
+    console.log('[MongoDB Server] ✅ ¡MongoClient.connect() EXITOSO!');
+    console.log('[MongoDB Server] Conexión establecida correctamente con MongoDB Atlas.');
     return connectedClient;
   } catch (err: any) {
     isConnecting = false;
     lastFailedAttemptTime = Date.now();
-    lastConnectionError = err?.message || 'Error al conectar a MongoDB';
+    const errMessage = err?.message || 'Error desconocido al conectar con MongoClient';
+    lastConnectionError = errMessage;
     global._mongoClientPromise = undefined;
     global._mongoClient = undefined;
+
+    console.error('----------------------------------------------------');
+    console.error('[MongoDB Server] ❌ ERROR en MongoClient.connect():');
+    console.error(`[MongoDB Server] Mensaje: ${errMessage}`);
+    if (err?.code) console.error(`[MongoDB Server] Código de error: ${err.code}`);
+    if (err?.name) console.error(`[MongoDB Server] Nombre del error: ${err.name}`);
+    if (err?.stack) console.error(`[MongoDB Server] Stack trace:\n${err.stack}`);
+    console.error('----------------------------------------------------');
+
     return null;
   }
 }
 
-export async function getMongoDb(): Promise<Db | null> {
-  const client = await getMongoClient();
+export async function getMongoDb(forceReconnect = false): Promise<Db | null> {
+  const client = await getMongoClient(forceReconnect);
   if (!client) return null;
 
   try {
@@ -192,13 +257,14 @@ export async function getMongoDb(): Promise<Db | null> {
 
     return client.db(dbName);
   } catch (err: any) {
-    console.error('Error getting MongoDB database instance:', err);
+    console.error('[MongoDB Server] Error al obtener instancia Db:', err);
     return null;
   }
 }
 
 export async function getDbStatus() {
-  const uri = getMongoUri();
+  const envInfo = getDetectedEnvVarInfo();
+  const uri = envInfo.value;
   const isConfigured = Boolean(uri);
   const db = await getMongoDb();
   const isConnected = Boolean(db);
@@ -259,25 +325,47 @@ export async function getDbStatus() {
       const mongoUsers = await db.collection('users').find({}, { projection: { password: 1 } }).toArray();
       hashedUsersCount = mongoUsers.filter((u) => isBcryptHash(u.password)).length;
     } catch (e: any) {
-      console.warn('Failed to count collection items:', e.message);
+      console.warn('[MongoDB Server] Advertencia al contar documentos:', e.message);
+    }
+  }
+
+  let connectionDiagnosis: string | null = null;
+  if (!isConnected) {
+    if (!isConfigured) {
+      connectionDiagnosis =
+        'La variable de entorno MONGODB_URI no fue encontrada en el servidor. En Vercel: Ve a tu proyecto > Settings > Environment Variables, agrega MONGODB_URI con tu cadena de conexión de MongoDB Atlas y haz clic en "Redeploy" en tu último despliegue.';
+    } else if (lastConnectionError) {
+      if (
+        lastConnectionError.includes('SSL alert number 80') ||
+        lastConnectionError.includes('tlsv1 alert internal error') ||
+        lastConnectionError.includes('MongoServerSelectionError')
+      ) {
+        connectionDiagnosis =
+          'MongoDB Atlas rechazó la conexión SSL debido a la lista blanca de IPs (Network Access). Para solucionarlo en MongoDB Atlas: Ve a "Security" > "Network Access" > Haz clic en "Add IP Address" > Selecciona "Allow Access from Anywhere (0.0.0.0/0)" y guarda.';
+      } else if (
+        lastConnectionError.includes('Authentication failed') ||
+        lastConnectionError.includes('auth error')
+      ) {
+        connectionDiagnosis =
+          'Error de credenciales en MongoDB Atlas: El usuario o contraseña incluidos en tu MONGODB_URI no son válidos. Si tu contraseña tiene caracteres especiales (como @, :, /, #), deben estar codificados en formato URL.';
+      } else {
+        connectionDiagnosis = `Error al conectar con MongoDB Atlas: ${lastConnectionError}`;
+      }
+    } else {
+      connectionDiagnosis = 'Conectando con MongoDB Atlas... Si tarda demasiado, haz clic en "Reintentar Conexión".';
     }
   }
 
   return {
     isConfigured,
     isConnected,
+    envVarDetected: envInfo.key,
+    uriLength: envInfo.rawLength,
     dbType: 'MongoDB',
     dbName: db ? db.databaseName : (isConfigured ? 'edusphere' : 'Memoria Local (Fallback)'),
     maskedUri,
     lastError: lastConnectionError,
-    connectionDiagnosis:
-      !isConnected && isConfigured && lastConnectionError
-        ? (lastConnectionError.includes('SSL alert number 80') ||
-           lastConnectionError.includes('tlsv1 alert internal error') ||
-           lastConnectionError.includes('MongoServerSelectionError'))
-          ? 'MongoDB Atlas rechazó la conexión SSL porque tu clúster tiene habilitada la lista blanca de IPs. Para resolverlo en MongoDB Atlas: Ve a "Security" > "Network Access" > Haz clic en "Add IP Address" > Elige "Allow Access from Anywhere (0.0.0.0/0)" y guarda los cambios.'
-          : 'Error al conectar con MongoDB Atlas. Verifica la contraseña del usuario en tu MONGODB_URI.'
-        : null,
+    connectionDiagnosis,
     collectionsCount,
     security: {
       passwordHashing: 'bcrypt (Blowfish)',

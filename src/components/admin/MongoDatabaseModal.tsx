@@ -199,6 +199,8 @@ export const MongoDatabaseModal: React.FC<MongoDatabaseModalProps> = ({ isOpen, 
             className={`p-4 rounded-xl border flex items-start gap-4 ${
               isConnected
                 ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800'
+                : dbStatus?.isConfigured
+                ? 'bg-sky-50 dark:bg-sky-950/30 border-sky-300 dark:border-sky-800'
                 : 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800'
             }`}
           >
@@ -206,35 +208,59 @@ export const MongoDatabaseModal: React.FC<MongoDatabaseModalProps> = ({ isOpen, 
               className={`p-2 rounded-lg mt-0.5 ${
                 isConnected
                   ? 'bg-emerald-500 text-white'
+                  : dbStatus?.isConfigured
+                  ? 'bg-sky-500 text-white'
                   : 'bg-amber-500 text-white'
               }`}
             >
-              {isConnected ? <CheckCircle2 className="w-5 h-5" /> : <AlertTriangle className="w-5 h-5" />}
+              {isConnected ? (
+                <CheckCircle2 className="w-5 h-5" />
+              ) : dbStatus?.isConfigured ? (
+                <RefreshCw className={`w-5 h-5 ${isRetrying ? 'animate-spin' : ''}`} />
+              ) : (
+                <AlertTriangle className="w-5 h-5" />
+              )}
             </div>
             <div className="flex-1">
               <div className="flex items-center justify-between">
                 <h4 className="font-semibold text-base">
                   {isConnected
-                    ? 'MongoDB Conectado y Activo'
-                    : 'MongoDB en Modo Local (MONGODB_URI pendiente)'}
+                    ? 'MongoDB Atlas Conectado y Activo'
+                    : dbStatus?.isConfigured
+                    ? 'Variable MONGODB_URI Detectada (Conexión Pendiente)'
+                    : 'Modo Local (MONGODB_URI no detectada en Vercel)'}
                 </h4>
-                <button
-                  onClick={refreshDbStatus}
-                  title="Actualizar estado"
-                  className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 font-medium px-2 py-1 bg-white/60 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700"
-                >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  Actualizar
-                </button>
+                <div className="flex items-center gap-2">
+                  {!isConnected && dbStatus?.isConfigured && (
+                    <button
+                      onClick={handleRetryConnection}
+                      disabled={isRetrying}
+                      className="flex items-center gap-1.5 text-xs text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 font-medium px-2.5 py-1 rounded shadow-xs"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${isRetrying ? 'animate-spin' : ''}`} />
+                      {isRetrying ? 'Conectando...' : 'Reconectar'}
+                    </button>
+                  )}
+                  <button
+                    onClick={refreshDbStatus}
+                    title="Actualizar estado"
+                    className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 font-medium px-2 py-1 bg-white/60 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    Actualizar
+                  </button>
+                </div>
               </div>
               <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
                 {isConnected
-                  ? `Conectado exitosamente a la base de datos "${dbStatus?.dbName || 'edusphere'}". Todos los cambios se guardan permanentemente en tu cluster.`
-                  : 'La plataforma está guardando en almacenamiento seguro local/memoria. Para persistir permanentemente en Vercel, agrega la variable MONGODB_URI en tu proyecto.'}
+                  ? `Conectado exitosamente a la base de datos "${dbStatus?.dbName || 'edusphere'}". Todos los cambios se guardan permanentemente en tu cluster de Atlas.`
+                  : dbStatus?.isConfigured
+                  ? `Variable "${dbStatus.envVarDetected || 'MONGODB_URI'}" detectada en el servidor (${dbStatus.uriLength || 0} caracteres). La base de datos está intentando la conexión con MongoDB Atlas.`
+                  : 'La variable de entorno MONGODB_URI no fue encontrada en Vercel. Ve a Vercel > Settings > Environment Variables, agrégala y haz clic en "Redeploy".'}
               </p>
               {dbStatus?.maskedUri && (
-                <div className="mt-2 text-xs font-mono bg-black/5 dark:bg-black/30 px-2 py-1 rounded inline-block text-slate-700 dark:text-slate-300">
-                  URI: {dbStatus.maskedUri}
+                <div className="mt-2 text-xs font-mono bg-black/5 dark:bg-black/30 px-2.5 py-1 rounded inline-block text-slate-700 dark:text-slate-300">
+                  Cadena: {dbStatus.maskedUri}
                 </div>
               )}
             </div>

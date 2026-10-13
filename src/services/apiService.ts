@@ -24,6 +24,8 @@ export interface DbSecurityStatus {
 export interface DbStatusResponse {
   isConfigured: boolean;
   isConnected: boolean;
+  envVarDetected?: string | null;
+  uriLength?: number;
   dbType: string;
   dbName: string;
   maskedUri: string;
