@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
 import { app } from './server/app';
+import { getMongoClient } from './server/db';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -38,6 +39,7 @@ async function startServer() {
 
   server.listen(PORT, () => {
     console.log(`EduSphere LMS server with MongoDB API running on http://0.0.0.0:${PORT}`);
+    getMongoClient().catch(() => {});
   });
 }
 

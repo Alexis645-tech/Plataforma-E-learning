@@ -120,13 +120,21 @@ export async function getMongoClient(forceReconnect = false): Promise<MongoClien
     return null;
   }
 
+  // Return existing active client connection immediately
+  if (global._mongoClient) {
+    return global._mongoClient;
+  }
+
   if (global._mongoClientPromise) {
     try {
       const client = await global._mongoClientPromise;
-      return client;
-    } catch (err: any) {
-      console.warn('Cached MongoDB connection failed, will retry:', err.message);
+      if (client) {
+        global._mongoClient = client;
+        return client;
+      }
+    } catch {
       global._mongoClientPromise = undefined;
+      global._mongoClient = undefined;
     }
   }
 
@@ -145,14 +153,15 @@ export async function getMongoClient(forceReconnect = false): Promise<MongoClien
 
     const client = new MongoClient(uri, {
       maxPoolSize: 10,
-      serverSelectionTimeoutMS: 3000,
-      connectTimeoutMS: 4000,
+      serverSelectionTimeoutMS: 5000,
+      connectTimeoutMS: 10000,
     });
 
-    global._mongoClientPromise = client.connect();
-    const connectedClient = await global._mongoClientPromise;
+    const connectPromise = client.connect();
+    global._mongoClientPromise = connectPromise;
+
+    const connectedClient = await connectPromise;
     global._mongoClient = connectedClient;
-    console.log('✅ Connected successfully to MongoDB');
     lastConnectionError = null;
     isConnecting = false;
     lastFailedAttemptTime = 0;
@@ -160,8 +169,7 @@ export async function getMongoClient(forceReconnect = false): Promise<MongoClien
   } catch (err: any) {
     isConnecting = false;
     lastFailedAttemptTime = Date.now();
-    lastConnectionError = err?.message || 'Error desconocido al conectar a MongoDB';
-    console.error('⚠️ MongoDB Connection Error:', lastConnectionError);
+    lastConnectionError = err?.message || 'Error al conectar a MongoDB';
     global._mongoClientPromise = undefined;
     global._mongoClient = undefined;
     return null;
