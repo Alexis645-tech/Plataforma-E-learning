@@ -18,7 +18,7 @@ export const INITIAL_USERS: User[] = [
     email: 'admin@edusphere.edu',
     role: 'admin',
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-    bio: 'Director Académico y Administrador General de EduSphere LMS.',
+    bio: 'Director Académico y Administrador General de Alexis Castro Academy.',
     createdAt: '2026-01-15',
     department: 'Dirección de Tecnología Educativa',
     password: 'AdminEdu2026!'

@@ -67,7 +67,7 @@ export const LoginScreen: React.FC = () => {
           </div>
           <div>
             <div className="text-base font-extrabold tracking-tight bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 dark:from-white dark:via-indigo-200 dark:to-white bg-clip-text text-transparent flex items-center gap-2">
-              EduSphere LMS
+              Alexis Castro Academy LMS
               <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
                 Portal Institucional
               </span>
@@ -247,7 +247,7 @@ export const LoginScreen: React.FC = () => {
               </button>
             </div>
             <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-              Por políticas de seguridad institucional, las credenciales son administradas exclusivamente por la Dirección de Tecnología Educativa de EduSphere LMS.
+              Por políticas de seguridad institucional, las credenciales son administradas exclusivamente por la Dirección de Tecnología Educativa de Alexis Castro Academy.
             </p>
             <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
               Si requieres asistencia para recuperar tu acceso o restablecer tu contraseña, contacta al Administrador institucional en:
@@ -270,7 +270,7 @@ export const LoginScreen: React.FC = () => {
 
       {/* Footer */}
       <footer className="w-full py-4 text-center text-[11px] text-slate-400 dark:text-slate-500 border-t border-slate-200/80 dark:border-slate-800/80">
-        EduSphere LMS v1.2 · Plataforma Institucional de Aprendizaje · Conforme a WCAG AA
+        Alexis Castro Academy LMS v1.2 · Plataforma Institucional de Aprendizaje · Conforme a WCAG AA
       </footer>
     </div>
   );

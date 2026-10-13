@@ -278,6 +278,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const validPasswords = [
       targetUser.password,
       rolePassword,
+      'AlexisCastro2026!',
+      'alexiscastro123',
       'edusphere123',
       'EduSphere2026!'
     ].filter(Boolean) as string[];

@@ -146,7 +146,7 @@ export const AdminDashboard: React.FC = () => {
       email: newEmail.trim(),
       role: newRole,
       department: newDepartment.trim() || undefined,
-      bio: newBio.trim() || (newRole === 'teacher' ? 'Docente en EduSphere LMS' : 'Estudiante activo en EduSphere LMS'),
+      bio: newBio.trim() || (newRole === 'teacher' ? 'Docente en Alexis Castro Academy' : 'Estudiante activo en Alexis Castro Academy'),
       avatar: `https://images.unsplash.com/photo-${1534528741775 + Math.floor(Math.random() * 500)}?w=150&auto=format&fit=crop&q=80`
     });
 

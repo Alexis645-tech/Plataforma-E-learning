@@ -785,7 +785,7 @@ export const TeacherDashboard: React.FC = () => {
             <span>{currentUser.name}</span>
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-            Studio Docente y Gestión de Contenido
+            Estudio Docente y Gestión de Contenido
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Crea, edita o elimina cursos, módulos y clases; gestiona la matrícula de estudiantes y califica entregas.

@@ -190,7 +190,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, isSidebarOpen }
             </div>
             <div className="flex flex-col">
               <span className="text-lg font-bold tracking-tight text-slate-900 dark:text-white font-sans whitespace-nowrap">
-                EduSphere<span className="text-indigo-600 dark:text-indigo-400">.</span>
+                Alexis Castro Academy<span className="text-indigo-600 dark:text-indigo-400">.</span>
               </span>
             </div>
           </a>

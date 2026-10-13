@@ -200,7 +200,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
             </button>
           )}
           <div className="text-[10px] text-center text-slate-400 dark:text-slate-500">
-            EduSphere v1.2 · Conforme a WCAG AA
+            Alexis Castro Academy v1.2 · Conforme a WCAG AA
           </div>
         </div>
       </aside>
