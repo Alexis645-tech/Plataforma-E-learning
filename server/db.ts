@@ -91,6 +91,8 @@ declare global {
 
 let isConnecting = false;
 let lastConnectionError: string | null = null;
+let lastFailedAttemptTime = 0;
+const RETRY_COOLDOWN_MS = 15000;
 
 export function getMongoUri(): string {
   return (
@@ -101,7 +103,18 @@ export function getMongoUri(): string {
   ).trim();
 }
 
-export async function getMongoClient(): Promise<MongoClient | null> {
+export function resetMongoClientCache() {
+  global._mongoClientPromise = undefined;
+  global._mongoClient = undefined;
+  lastConnectionError = null;
+  lastFailedAttemptTime = 0;
+}
+
+export async function getMongoClient(forceReconnect = false): Promise<MongoClient | null> {
+  if (forceReconnect) {
+    resetMongoClientCache();
+  }
+
   const uri = getMongoUri();
   if (!uri) {
     return null;
@@ -117,14 +130,23 @@ export async function getMongoClient(): Promise<MongoClient | null> {
     }
   }
 
+  // If a recent connection attempt failed, don't stall incoming requests; wait for cooldown or explicit retry
+  if (!forceReconnect && Date.now() - lastFailedAttemptTime < RETRY_COOLDOWN_MS) {
+    return null;
+  }
+
+  if (isConnecting) {
+    return null;
+  }
+
   try {
     isConnecting = true;
     lastConnectionError = null;
 
     const client = new MongoClient(uri, {
       maxPoolSize: 10,
-      serverSelectionTimeoutMS: 5000,
-      connectTimeoutMS: 10000,
+      serverSelectionTimeoutMS: 3000,
+      connectTimeoutMS: 4000,
     });
 
     global._mongoClientPromise = client.connect();
@@ -133,9 +155,11 @@ export async function getMongoClient(): Promise<MongoClient | null> {
     console.log('✅ Connected successfully to MongoDB');
     lastConnectionError = null;
     isConnecting = false;
+    lastFailedAttemptTime = 0;
     return connectedClient;
   } catch (err: any) {
     isConnecting = false;
+    lastFailedAttemptTime = Date.now();
     lastConnectionError = err?.message || 'Error desconocido al conectar a MongoDB';
     console.error('⚠️ MongoDB Connection Error:', lastConnectionError);
     global._mongoClientPromise = undefined;
@@ -238,6 +262,14 @@ export async function getDbStatus() {
     dbName: db ? db.databaseName : (isConfigured ? 'edusphere' : 'Memoria Local (Fallback)'),
     maskedUri,
     lastError: lastConnectionError,
+    connectionDiagnosis:
+      !isConnected && isConfigured && lastConnectionError
+        ? (lastConnectionError.includes('SSL alert number 80') ||
+           lastConnectionError.includes('tlsv1 alert internal error') ||
+           lastConnectionError.includes('MongoServerSelectionError'))
+          ? 'MongoDB Atlas rechazó la conexión SSL porque tu clúster tiene habilitada la lista blanca de IPs. Para resolverlo en MongoDB Atlas: Ve a "Security" > "Network Access" > Haz clic en "Add IP Address" > Elige "Allow Access from Anywhere (0.0.0.0/0)" y guarda los cambios.'
+          : 'Error al conectar con MongoDB Atlas. Verifica la contraseña del usuario en tu MONGODB_URI.'
+        : null,
     collectionsCount,
     security: {
       passwordHashing: 'bcrypt (Blowfish)',

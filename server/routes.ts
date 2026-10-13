@@ -7,6 +7,7 @@ import {
   stripMongoId,
   memoryStore,
   rehashAllUsersInMongo,
+  resetMongoClientCache,
 } from './db';
 import {
   hashPassword,
@@ -17,6 +18,7 @@ import {
 } from './security';
 import {
   User,
+  UserRole,
   Course,
   CourseModule,
   Quiz,
@@ -44,8 +46,28 @@ apiRouter.get('/health', async (req: Request, res: Response) => {
 });
 
 apiRouter.get('/db/status', async (req: Request, res: Response) => {
+  if (req.query.retry === 'true') {
+    resetMongoClientCache();
+  }
   const status = await getDbStatus();
   res.json(status);
+});
+
+apiRouter.post('/db/retry', async (req: Request, res: Response) => {
+  try {
+    resetMongoClientCache();
+    const db = await getMongoDb();
+    const status = await getDbStatus();
+    res.json({
+      success: Boolean(db),
+      status,
+      message: db
+        ? 'Conexión a MongoDB Atlas verificada con éxito.'
+        : status.connectionDiagnosis || 'Error de conexión a MongoDB Atlas.',
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 apiRouter.post('/db/seed', async (req: Request, res: Response) => {
@@ -238,6 +260,78 @@ apiRouter.post('/auth/login', async (req: Request, res: Response) => {
     });
   } catch (err: any) {
     console.error('Error during login:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+apiRouter.post('/auth/register', async (req: Request, res: Response) => {
+  try {
+    const { name, email, password, role = 'student', department, bio } = req.body;
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        error: 'El nombre, correo institucional y contraseña son requeridos.',
+      });
+    }
+
+    const trimmedEmail = String(email).trim().toLowerCase();
+    const db = await getMongoDb();
+
+    // Check if user exists in MongoDB
+    if (db) {
+      const existing = await db.collection('users').findOne({
+        email: { $regex: new RegExp(`^${trimmedEmail}$`, 'i') },
+      });
+      if (existing) {
+        return res.status(409).json({
+          success: false,
+          error: 'Ya existe un usuario registrado con este correo institucional.',
+        });
+      }
+    }
+
+    // Check in memory fallback
+    const existingMem = memoryStore.users.find(
+      (u) => u.email.toLowerCase() === trimmedEmail
+    );
+    if (existingMem) {
+      return res.status(409).json({
+        success: false,
+        error: 'Ya existe un usuario registrado con este correo institucional.',
+      });
+    }
+
+    // Hash the password with bcrypt (10 salt rounds)
+    const hashedPassword = await hashPassword(String(password).trim());
+
+    const newUser: User = {
+      id: `usr_${Date.now()}`,
+      name: String(name).trim(),
+      email: trimmedEmail,
+      role: (role === 'admin' || role === 'teacher' ? role : 'student') as UserRole,
+      password: hashedPassword,
+      passwordHash: hashedPassword,
+      isPasswordHashed: true,
+      bio: bio ? String(bio).trim() : 'Estudiante de campus virtual',
+      department: department ? String(department).trim() : 'Tecnología e Informática',
+      avatar: `https://images.unsplash.com/photo-${1534528741775 + Math.floor(Math.random() * 800)}?w=150&auto=format&fit=crop&q=80`,
+      createdAt: new Date().toISOString().split('T')[0],
+      coursesEnrolled: ['crs_fullstack_1'],
+    };
+
+    memoryStore.users.push(newUser);
+
+    if (db) {
+      await db.collection('users').insertOne({ ...newUser });
+    }
+
+    res.status(201).json({
+      success: true,
+      message: 'Usuario registrado exitosamente con contraseña encriptada en Bcrypt (salt rounds = 10).',
+      user: newUser,
+    });
+  } catch (err: any) {
+    console.error('Error during user registration:', err);
     res.status(500).json({ success: false, error: err.message });
   }
 });

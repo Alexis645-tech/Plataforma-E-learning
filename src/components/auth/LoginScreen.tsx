@@ -15,24 +15,40 @@ import {
   X,
   CheckCircle2,
   Linkedin,
-  ExternalLink
+  ExternalLink,
+  UserPlus,
+  LogIn,
+  User
 } from 'lucide-react';
+import { apiService } from '../../services/apiService';
 
 export const LoginScreen: React.FC = () => {
-  const { login, theme, toggleTheme } = useApp();
+  const { login, theme, toggleTheme, reloadFromBackend } = useApp();
 
-  // Form state for secure institutional login
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+
+  // Login form state
   const [emailInput, setEmailInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
+
+  // Register form state
+  const [regName, setRegName] = useState('');
+  const [regEmail, setRegEmail] = useState('');
+  const [regPassword, setRegPassword] = useState('');
+  const [regDepartment, setRegDepartment] = useState('Ingeniería y Tecnología');
+  const [showRegPassword, setShowRegPassword] = useState(false);
+
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
+    setSuccessMessage(null);
 
     if (!emailInput.trim()) {
       setErrorMessage('Por favor ingresa tu correo institucional.');
@@ -54,6 +70,60 @@ export const LoginScreen: React.FC = () => {
     } catch (err: any) {
       setIsLoading(false);
       setErrorMessage(err.message || 'Error de autenticación. Por favor reintenta.');
+    }
+  };
+
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    if (!regName.trim()) {
+      setErrorMessage('Por favor ingresa tu nombre completo.');
+      return;
+    }
+
+    if (!regEmail.trim()) {
+      setErrorMessage('Por favor ingresa tu correo institucional.');
+      return;
+    }
+
+    if (!regPassword || regPassword.length < 6) {
+      setErrorMessage('La contraseña debe contener al menos 6 caracteres.');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const res = await apiService.register({
+        name: regName.trim(),
+        email: regEmail.trim(),
+        password: regPassword.trim(),
+        role: 'student',
+        department: regDepartment.trim(),
+        bio: 'Estudiante de nuevo ingreso en el campus virtual',
+      });
+
+      if (!res.success) {
+        setIsLoading(false);
+        setErrorMessage(res.error || 'Error al registrar usuario.');
+        return;
+      }
+
+      setSuccessMessage('¡Cuenta creada y asegurada con Bcrypt! Iniciando sesión...');
+      await reloadFromBackend();
+
+      // Automatically log the new user in
+      setTimeout(async () => {
+        const loginRes = await login(regEmail.trim(), regPassword.trim());
+        setIsLoading(false);
+        if (!loginRes.success && loginRes.error) {
+          setErrorMessage(loginRes.error);
+        }
+      }, 500);
+    } catch (err: any) {
+      setIsLoading(false);
+      setErrorMessage(err.message || 'Error de conexión durante el registro.');
     }
   };
 
@@ -103,126 +173,276 @@ export const LoginScreen: React.FC = () => {
         </div>
       </header>
 
-      {/* Main Content: Focused Secure Login Card */}
+      {/* Main Content: Focused Secure Login / Register Card */}
       <main className="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-8">
         <div className="w-full max-w-md mx-auto">
-          <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl p-6 sm:p-8 space-y-6">
+          <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl p-6 sm:p-8 space-y-5">
             {/* Header in Card */}
-            <div className="text-center space-y-2">
+            <div className="text-center space-y-1.5">
               <div className="inline-flex p-3 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 mb-1 ring-1 ring-indigo-500/20">
                 <GraduationCap className="w-7 h-7" />
               </div>
               <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
-                Acceso al Campus Virtual
+                {authMode === 'login' ? 'Acceso al Campus Virtual' : 'Registro de Estudiante'}
               </h1>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Ingresa con tu correo y contraseña institucional para acceder a tu rol correspondiente.
+                {authMode === 'login'
+                  ? 'Ingresa con tu correo y contraseña institucional para acceder.'
+                  : 'Crea tu cuenta institucional protegida con encriptación Bcrypt.'}
               </p>
             </div>
 
-            {/* Error Message */}
+            {/* Mode Switcher Tabs */}
+            <div className="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+              <button
+                type="button"
+                onClick={() => {
+                  setAuthMode('login');
+                  setErrorMessage(null);
+                  setSuccessMessage(null);
+                }}
+                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                  authMode === 'login'
+                    ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>Iniciar Sesión</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setAuthMode('register');
+                  setErrorMessage(null);
+                  setSuccessMessage(null);
+                }}
+                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                  authMode === 'register'
+                    ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <UserPlus className="w-3.5 h-3.5" />
+                <span>Crear Cuenta</span>
+              </button>
+            </div>
+
+            {/* Messages */}
             {errorMessage && (
               <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900/60 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2.5 animate-in fade-in duration-150">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span className="leading-relaxed">{errorMessage}</span>
               </div>
             )}
-
-            {/* Login Form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Institutional Email */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Correo Electrónico Institucional *
-                </label>
-                <div className="relative">
-                  <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type="email"
-                    required
-                    placeholder="usuario@edusphere.edu"
-                    value={emailInput}
-                    onChange={(e) => {
-                      setEmailInput(e.target.value);
-                      setErrorMessage(null);
-                    }}
-                    autoComplete="email"
-                    className="w-full pl-9 pr-3 py-2.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 transition-colors"
-                  />
-                </div>
+            {successMessage && (
+              <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-900/60 text-emerald-700 dark:text-emerald-300 text-xs flex items-center gap-2.5 animate-in fade-in duration-150">
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-500" />
+                <span className="leading-relaxed">{successMessage}</span>
               </div>
+            )}
 
-              {/* Password */}
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                    Contraseña Institucional *
+            {/* LOGIN FORM */}
+            {authMode === 'login' && (
+              <form onSubmit={handleLoginSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Correo Electrónico Institucional *
                   </label>
-                  <button
-                    type="button"
-                    onClick={() => setShowHelpModal(true)}
-                    className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
-                  >
-                    ¿Olvidaste tu contraseña?
-                  </button>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="email"
+                      required
+                      placeholder="usuario@edusphere.edu"
+                      value={emailInput}
+                      onChange={(e) => {
+                        setEmailInput(e.target.value);
+                        setErrorMessage(null);
+                      }}
+                      autoComplete="email"
+                      className="w-full pl-9 pr-3 py-2.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 transition-colors"
+                    />
+                  </div>
                 </div>
-                <div className="relative">
-                  <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    required
-                    placeholder="••••••••••••"
-                    value={passwordInput}
-                    onChange={(e) => {
-                      setPasswordInput(e.target.value);
-                      setErrorMessage(null);
-                    }}
-                    autoComplete="current-password"
-                    className="w-full pl-9 pr-10 py-2.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 transition-colors"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
-                    aria-label={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                      Contraseña Institucional *
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setShowHelpModal(true)}
+                      className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+                    >
+                      ¿Olvidaste tu contraseña?
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      placeholder="••••••••••••"
+                      value={passwordInput}
+                      onChange={(e) => {
+                        setPasswordInput(e.target.value);
+                        setErrorMessage(null);
+                      }}
+                      autoComplete="current-password"
+                      className="w-full pl-9 pr-10 py-2.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 transition-colors"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
+                      aria-label={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              {/* Remember Session */}
-              <div className="flex items-center justify-between text-xs pt-1">
-                <label className="flex items-center gap-2 cursor-pointer select-none text-slate-600 dark:text-slate-400">
+                <div className="flex items-center justify-between text-xs pt-1">
+                  <label className="flex items-center gap-2 cursor-pointer select-none text-slate-600 dark:text-slate-400">
+                    <input
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <span>Recordar sesión en este dispositivo</span>
+                  </label>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold text-xs shadow-md shadow-indigo-600/25 transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+                >
+                  {isLoading ? (
+                    <span>Verificando credenciales con Bcrypt...</span>
+                  ) : (
+                    <>
+                      <span>Iniciar Sesión en el Campus</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+              </form>
+            )}
+
+            {/* REGISTER FORM */}
+            {authMode === 'register' && (
+              <form onSubmit={handleRegisterSubmit} className="space-y-3.5">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Nombre Completo *
+                  </label>
+                  <div className="relative">
+                    <User className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ej: Sofía Morales"
+                      value={regName}
+                      onChange={(e) => {
+                        setRegName(e.target.value);
+                        setErrorMessage(null);
+                      }}
+                      className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Correo Electrónico Institucional *
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="email"
+                      required
+                      placeholder="tu.nombre@edusphere.edu"
+                      value={regEmail}
+                      onChange={(e) => {
+                        setRegEmail(e.target.value);
+                        setErrorMessage(null);
+                      }}
+                      className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Carrera o Facultad
+                  </label>
                   <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                    type="text"
+                    placeholder="Ej: Ingeniería de Software, Diseño Digital"
+                    value={regDepartment}
+                    onChange={(e) => setRegDepartment(e.target.value)}
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
                   />
-                  <span>Recordar sesión en este dispositivo</span>
-                </label>
-              </div>
+                </div>
 
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold text-xs shadow-md shadow-indigo-600/25 transition-all flex items-center justify-center gap-2 disabled:opacity-60"
-              >
-                {isLoading ? (
-                  <span>Verificando credenciales...</span>
-                ) : (
-                  <>
-                    <span>Iniciar Sesión en el Campus</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
-              </button>
-            </form>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Contraseña *
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type={showRegPassword ? 'text' : 'password'}
+                      required
+                      placeholder="Mínimo 6 caracteres"
+                      value={regPassword}
+                      onChange={(e) => {
+                        setRegPassword(e.target.value);
+                        setErrorMessage(null);
+                      }}
+                      className="w-full pl-9 pr-10 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowRegPassword(!showRegPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
+                    >
+                      {showRegPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Bcrypt Guarantee Notice */}
+                <div className="p-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/50 flex items-start gap-2 text-[10px] text-emerald-800 dark:text-emerald-300">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                  <span>
+                    <strong>Cifrado Bcrypt Garantizado:</strong> Tu contraseña será convertida en un hash irreversible (salt rounds = 10) antes de almacenarse en MongoDB Atlas.
+                  </span>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold text-xs shadow-md shadow-indigo-600/25 transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+                >
+                  {isLoading ? (
+                    <span>Registrando y Hasheando...</span>
+                  ) : (
+                    <>
+                      <span>Registrarse como Estudiante</span>
+                      <UserPlus className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+              </form>
+            )}
 
             {/* Institutional Security Notice */}
-            <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80 space-y-2">
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 space-y-2">
               <div className="flex items-start gap-2.5 text-[11px] text-slate-500 dark:text-slate-400">
                 <Shield className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
                 <p className="leading-snug">

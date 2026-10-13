@@ -28,6 +28,7 @@ export interface DbStatusResponse {
   dbName: string;
   maskedUri: string;
   lastError: string | null;
+  connectionDiagnosis?: string | null;
   collectionsCount: Record<string, number>;
   security?: DbSecurityStatus;
   timestamp: string;
@@ -146,6 +147,42 @@ class ApiService {
       return await res.json();
     } catch (e: any) {
       return { updated: 0, message: e.message || 'Error al actualizar cifrado de contraseñas' };
+    }
+  }
+
+  async register(data: {
+    name: string;
+    email: string;
+    password: string;
+    role?: string;
+    department?: string;
+    bio?: string;
+  }): Promise<{ success: boolean; user?: User; error?: string; message?: string }> {
+    try {
+      const res = await fetch(`${this.baseUrl}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      return await res.json();
+    } catch (e: any) {
+      return { success: false, error: e.message || 'Error de conexión con el servicio de registro' };
+    }
+  }
+
+  async retryConnection(): Promise<{ success: boolean; status: DbStatusResponse; message: string }> {
+    try {
+      const res = await fetch(`${this.baseUrl}/db/retry`, {
+        method: 'POST',
+      });
+      return await res.json();
+    } catch (e: any) {
+      const current = (await this.getDbStatus()) as DbStatusResponse;
+      return {
+        success: false,
+        status: current,
+        message: e.message || 'Error al conectar',
+      };
     }
   }
 

@@ -47,9 +47,37 @@ export const MongoDatabaseModal: React.FC<MongoDatabaseModalProps> = ({ isOpen, 
   const [isSyncing, setIsSyncing] = useState(false);
   const [isSeeding, setIsSeeding] = useState(false);
   const [isRehashing, setIsRehashing] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
   const [syncMessage, setSyncMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   if (!isOpen) return null;
+
+  const handleRetryConnection = async () => {
+    setIsRetrying(true);
+    setSyncMessage(null);
+    try {
+      const res = await apiService.retryConnection();
+      await refreshDbStatus();
+      if (res.success) {
+        setSyncMessage({
+          type: 'success',
+          text: '¡Conexión establecida exitosamente con MongoDB Atlas!',
+        });
+      } else {
+        setSyncMessage({
+          type: 'error',
+          text: res.message || 'Error al conectar con MongoDB Atlas.',
+        });
+      }
+    } catch (e: any) {
+      setSyncMessage({
+        type: 'error',
+        text: e.message || 'Error al intentar conectar.',
+      });
+    } finally {
+      setIsRetrying(false);
+    }
+  };
 
   const handleSyncToMongo = async () => {
     setIsSyncing(true);
@@ -211,6 +239,47 @@ export const MongoDatabaseModal: React.FC<MongoDatabaseModalProps> = ({ isOpen, 
               )}
             </div>
           </div>
+
+          {/* MongoDB Atlas IP Whitelist Warning / Guidance */}
+          {!isConnected && dbStatus?.connectionDiagnosis && (
+            <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800/80 space-y-2.5 animate-in fade-in duration-200">
+              <div className="flex items-center gap-2 text-amber-900 dark:text-amber-200 font-bold text-xs">
+                <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                <span>Paso Requerido en tu panel de MongoDB Atlas (Network Access):</span>
+              </div>
+              <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
+                {dbStatus.connectionDiagnosis}
+              </p>
+              <div className="bg-white/80 dark:bg-slate-900/80 p-2.5 rounded-lg border border-amber-200 dark:border-amber-900/60 text-[11px] text-slate-700 dark:text-slate-300 space-y-1">
+                <div className="font-semibold text-slate-900 dark:text-white">Instrucciones rápidas en MongoDB Atlas:</div>
+                <div className="flex items-center gap-2">
+                  <span className="w-4 h-4 rounded-full bg-amber-500 text-white flex items-center justify-center text-[10px] font-bold">1</span>
+                  <span>En tu clúster de Atlas, ve a <strong>Security &rarr; Network Access</strong>.</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-4 h-4 rounded-full bg-amber-500 text-white flex items-center justify-center text-[10px] font-bold">2</span>
+                  <span>Haz clic en el botón verde <strong>"Add IP Address"</strong>.</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-4 h-4 rounded-full bg-amber-500 text-white flex items-center justify-center text-[10px] font-bold">3</span>
+                  <span>Haz clic en <strong>"ALLOW ACCESS FROM ANYWHERE"</strong> (agrega <code className="font-mono bg-slate-100 dark:bg-slate-800 px-1 rounded">0.0.0.0/0</code>) y confirma.</span>
+                </div>
+              </div>
+              <div className="pt-1 flex items-center justify-between">
+                <span className="text-[11px] text-amber-700 dark:text-amber-400 font-medium">
+                  Una vez guardado en Atlas (tarda ~15 seg):
+                </span>
+                <button
+                  onClick={handleRetryConnection}
+                  disabled={isRetrying}
+                  className="px-3.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs shadow-xs transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isRetrying ? 'animate-spin' : ''}`} />
+                  {isRetrying ? 'Conectando...' : 'Reconectar Ahora'}
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Sync Message Alert */}
           {syncMessage && (
