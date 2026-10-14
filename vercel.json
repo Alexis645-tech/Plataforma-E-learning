@@ -3,7 +3,8 @@
   "functions": {
     "api/index.ts": {
       "memory": 1024,
-      "maxDuration": 15
+      "maxDuration": 15,
+      "includeFiles": "{server/**,src/data/**,src/types/**}"
     }
   },
   "rewrites": [
