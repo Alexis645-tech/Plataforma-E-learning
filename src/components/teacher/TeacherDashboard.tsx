@@ -30,7 +30,8 @@ import {
   Eye,
   Link2,
   Paperclip,
-  RefreshCw
+  RefreshCw,
+  Lock
 } from 'lucide-react';
 import { MediaRenderer } from '../common/MediaRenderer';
 import { resolveMediaEmbedInfo } from '../../utils/mediaUtils';
@@ -198,11 +199,23 @@ export const TeacherDashboard: React.FC = () => {
   const [quizMaxAttempts, setQuizMaxAttempts] = useState<1 | 2 | 3 | 'unlimited'>('unlimited');
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
 
+  // Helper to determine if the active user can edit/delete/manage a specific course
+  // (Only the teacher who created the course or an administrator)
+  const canEditCourse = (c?: Course | null) => {
+    if (!c) return false;
+    return currentUser.role === 'admin' || c.teacherId === currentUser.id;
+  };
+
   // Teacher courses
   const myCourses = courses.filter((c) => c.teacherId === currentUser.id);
-  const displayedCourses = courseFilter === 'my' && myCourses.length > 0 ? myCourses : courses;
-  const activeCourse = courses.find((c) => c.id === activeCourseId) || displayedCourses[0] || courses[0];
+  const displayedCourses = courseFilter === 'my' ? myCourses : courses;
+  const activeCourse = courses.find((c) => c.id === activeCourseId) || displayedCourses[0] || myCourses[0] || courses[0];
   const courseModules = modules.filter((m) => m.courseId === activeCourse?.id);
+  const canManageActiveCourse = Boolean(activeCourse && canEditCourse(activeCourse));
+  const activeCourseTeacher = users.find((u) => u.id === activeCourse?.teacherId);
+
+  // Courses the current user can assign new items/evaluations to
+  const manageableCourses = currentUser.role === 'admin' ? courses : myCourses;
 
   // Submissions for my courses
   const myCourseIds = myCourses.map((c) => c.id);
@@ -257,6 +270,10 @@ export const TeacherDashboard: React.FC = () => {
   };
 
   const openEditCourseModal = (course: Course) => {
+    if (!canEditCourse(course)) {
+      showToast('Solo el docente titular o un administrador pueden editar este curso.');
+      return;
+    }
     setActiveCourseId(course.id);
     setCourseTitle(course.title);
     setCourseDescription(course.description);
@@ -268,6 +285,10 @@ export const TeacherDashboard: React.FC = () => {
   const handleEditCourseSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeCourse || !courseTitle.trim()) return;
+    if (!canEditCourse(activeCourse)) {
+      showToast('No tienes permisos para modificar este curso.');
+      return;
+    }
 
     updateCourse(activeCourse.id, {
       title: courseTitle.trim(),
@@ -281,6 +302,10 @@ export const TeacherDashboard: React.FC = () => {
   };
 
   const handleDeleteCourse = (course: Course) => {
+    if (!canEditCourse(course)) {
+      showToast('Solo el docente titular o un administrador pueden eliminar este curso.');
+      return;
+    }
     setConfirmModal({
       isOpen: true,
       title: `Eliminar Curso: "${course.title}"`,
@@ -307,6 +332,10 @@ export const TeacherDashboard: React.FC = () => {
   const handleCreateModuleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!moduleTitle.trim() || !activeCourse) return;
+    if (!canManageActiveCourse) {
+      showToast('No tienes permisos para añadir módulos a este curso.');
+      return;
+    }
 
     createModule(activeCourse.id, moduleTitle.trim(), moduleDescription.trim());
     showToast(`Módulo "${moduleTitle.trim()}" creado exitosamente.`);
@@ -316,6 +345,10 @@ export const TeacherDashboard: React.FC = () => {
   };
 
   const openEditModuleModal = (module: CourseModule) => {
+    if (!canManageActiveCourse) {
+      showToast('No tienes permisos para editar módulos en este curso.');
+      return;
+    }
     setActiveModuleId(module.id);
     setModuleTitle(module.title);
     setModuleDescription(module.description);
@@ -325,6 +358,10 @@ export const TeacherDashboard: React.FC = () => {
   const handleEditModuleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeModuleId || !moduleTitle.trim()) return;
+    if (!canManageActiveCourse) {
+      showToast('No tienes permisos para modificar módulos en este curso.');
+      return;
+    }
 
     updateModule(activeModuleId, {
       title: moduleTitle.trim(),
@@ -336,6 +373,10 @@ export const TeacherDashboard: React.FC = () => {
   };
 
   const handleDeleteModule = (module: CourseModule) => {
+    if (!canManageActiveCourse) {
+      showToast('No tienes permisos para eliminar módulos en este curso.');
+      return;
+    }
     setConfirmModal({
       isOpen: true,
       title: `Eliminar Módulo: "${module.title}"`,
@@ -354,6 +395,10 @@ export const TeacherDashboard: React.FC = () => {
   const handleCreateLessonSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!lessonTitle.trim() || !activeModuleId) return;
+    if (!canManageActiveCourse) {
+      showToast('No tienes permisos para crear clases en este curso.');
+      return;
+    }
 
     createLesson(activeModuleId, {
       title: lessonTitle.trim(),
@@ -388,6 +433,10 @@ export const TeacherDashboard: React.FC = () => {
   };
 
   const openEditLessonModal = (lesson: Lesson, moduleId: string) => {
+    if (!canManageActiveCourse) {
+      showToast('No tienes permisos para editar clases en este curso.');
+      return;
+    }
     setActiveLessonId(lesson.id);
     setActiveModuleId(moduleId);
     setLessonTitle(lesson.title);
@@ -420,6 +469,10 @@ export const TeacherDashboard: React.FC = () => {
   const handleEditLessonSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeLessonId || !lessonTitle.trim()) return;
+    if (!canManageActiveCourse) {
+      showToast('No tienes permisos para editar clases en este curso.');
+      return;
+    }
 
     updateLesson(activeLessonId, {
       title: lessonTitle.trim(),
@@ -447,6 +500,10 @@ export const TeacherDashboard: React.FC = () => {
   };
 
   const handleDeleteLesson = (lesson: Lesson) => {
+    if (!canManageActiveCourse) {
+      showToast('No tienes permisos para eliminar clases en este curso.');
+      return;
+    }
     setConfirmModal({
       isOpen: true,
       title: `Eliminar Clase: "${lesson.title}"`,
@@ -462,7 +519,10 @@ export const TeacherDashboard: React.FC = () => {
   };
 
   const handleUnenrollStudent = (student: User) => {
-    if (!activeCourse) return;
+    if (!activeCourse || !canManageActiveCourse) {
+      showToast('No tienes permisos para gestionar la matrícula de este curso.');
+      return;
+    }
     setConfirmModal({
       isOpen: true,
       title: 'Desmatricular Estudiante',
@@ -554,6 +614,11 @@ export const TeacherDashboard: React.FC = () => {
   };
 
   const openEditAssignmentModal = (asg: Assignment) => {
+    const crs = courses.find((c) => c.id === asg.courseId);
+    if (!canEditCourse(crs)) {
+      showToast('Solo el docente titular o un administrador pueden editar esta tarea.');
+      return;
+    }
     setEditingAssignment(asg);
     setAsgEditTitle(asg.title);
     setAsgEditDescription(asg.description);
@@ -570,6 +635,12 @@ export const TeacherDashboard: React.FC = () => {
   const handleEditAssignmentSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingAssignment || !asgEditTitle.trim()) return;
+
+    const crs = courses.find((c) => c.id === editingAssignment.courseId);
+    if (!canEditCourse(crs)) {
+      showToast('No tienes permisos para modificar esta tarea.');
+      return;
+    }
 
     let finalEditMaterials = [...asgEditMaterials];
     if (newEditMaterialUrl.trim()) {
@@ -598,6 +669,11 @@ export const TeacherDashboard: React.FC = () => {
   };
 
   const handleDeleteAssignment = (asg: Assignment) => {
+    const crs = courses.find((c) => c.id === asg.courseId);
+    if (!canEditCourse(crs)) {
+      showToast('Solo el docente titular o un administrador pueden eliminar esta tarea.');
+      return;
+    }
     setConfirmModal({
       isOpen: true,
       title: `Eliminar Tarea: "${asg.title}"`,
@@ -614,10 +690,11 @@ export const TeacherDashboard: React.FC = () => {
 
   // --- QUIZZES HANDLERS ---
   const openNewQuizModal = () => {
+    const targetCourseId = (canManageActiveCourse ? activeCourse?.id : manageableCourses[0]?.id) || '';
     setEditingQuiz(null);
     setQuizTitle('');
     setQuizDescription('');
-    setQuizCourseId(activeCourse?.id || myCourses[0]?.id || courses[0]?.id || '');
+    setQuizCourseId(targetCourseId);
     setQuizTimeLimit(15);
     setQuizMaxAttempts('unlimited');
     setQuizLessonId('');
@@ -653,6 +730,11 @@ export const TeacherDashboard: React.FC = () => {
   };
 
   const openEditQuizModal = (quiz: Quiz) => {
+    const crs = courses.find((c) => c.id === quiz.courseId);
+    if (!canEditCourse(crs)) {
+      showToast('Solo el docente titular o un administrador pueden editar este cuestionario.');
+      return;
+    }
     setEditingQuiz(quiz);
     setQuizTitle(quiz.title);
     setQuizDescription(quiz.description);
@@ -706,6 +788,11 @@ export const TeacherDashboard: React.FC = () => {
   const handleEditQuizSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingQuiz || !quizTitle.trim() || !quizCourseId) return;
+    const crs = courses.find((c) => c.id === editingQuiz.courseId);
+    if (!canEditCourse(crs)) {
+      showToast('No tienes permisos para modificar este cuestionario.');
+      return;
+    }
     if (quizQuestions.length === 0) {
       showToast('El examen debe tener al menos una pregunta.');
       return;
@@ -727,6 +814,11 @@ export const TeacherDashboard: React.FC = () => {
   };
 
   const handleDeleteQuiz = (quiz: Quiz) => {
+    const crs = courses.find((c) => c.id === quiz.courseId);
+    if (!canEditCourse(crs)) {
+      showToast('Solo el docente titular o un administrador pueden eliminar este cuestionario.');
+      return;
+    }
     setConfirmModal({
       isOpen: true,
       title: `Eliminar Cuestionario: "${quiz.title}"`,
@@ -820,6 +912,12 @@ export const TeacherDashboard: React.FC = () => {
           </button>
           <button
             onClick={() => {
+              if (manageableCourses.length === 0) {
+                showToast('Primero debes crear un curso propio para poder asignarle tareas.');
+                setIsNewCourseModalOpen(true);
+                return;
+              }
+              const defaultCourseId = (canManageActiveCourse ? activeCourse?.id : manageableCourses[0]?.id) || '';
               setAsgTitle('');
               setAsgDescription('');
               setAsgLessonId('');
@@ -827,7 +925,7 @@ export const TeacherDashboard: React.FC = () => {
               setNewMaterialTitle('');
               setNewMaterialUrl('');
               setAsgDueDate('2026-11-15T23:59');
-              setAsgCourseId(activeCourse?.id || myCourses[0]?.id || courses[0]?.id || '');
+              setAsgCourseId(defaultCourseId);
               setIsNewAssignmentModalOpen(true);
             }}
             className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-white text-white dark:text-slate-900 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap shadow-xs"
@@ -836,7 +934,14 @@ export const TeacherDashboard: React.FC = () => {
             Nueva Tarea
           </button>
           <button
-            onClick={openNewQuizModal}
+            onClick={() => {
+              if (manageableCourses.length === 0) {
+                showToast('Primero debes crear un curso propio para poder asignarle cuestionarios.');
+                setIsNewCourseModalOpen(true);
+                return;
+              }
+              openNewQuizModal();
+            }}
             className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow-sm shadow-emerald-600/30 transition-colors whitespace-nowrap"
           >
             <Award className="w-3.5 h-3.5" />
@@ -1064,32 +1169,46 @@ export const TeacherDashboard: React.FC = () => {
                       </div>
 
                       {/* Course Card Action Buttons */}
-                      <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-end gap-1">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openEditCourseModal(c);
-                          }}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors"
-                          title="Editar información de este curso"
-                        >
-                          <Edit3 className="w-3 h-3" />
-                          <span>Editar</span>
-                        </button>
+                      <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
+                        {canEditCourse(c) ? (
+                          <div className="flex items-center justify-end gap-1 w-full">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openEditCourseModal(c);
+                              }}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors"
+                              title="Editar información de este curso"
+                            >
+                              <Edit3 className="w-3 h-3" />
+                              <span>Editar</span>
+                            </button>
 
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteCourse(c);
-                          }}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded transition-colors"
-                          title="Eliminar este curso"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                          <span>Eliminar</span>
-                        </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteCourse(c);
+                              }}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded transition-colors"
+                              title="Eliminar este curso"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              <span>Eliminar</span>
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-between w-full">
+                            <span className="inline-flex items-center gap-1 text-[10px] font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80 px-2 py-0.5 rounded">
+                              <Lock className="w-2.5 h-2.5 text-slate-400" />
+                              <span>Solo lectura</span>
+                            </span>
+                            <span className="text-[10px] text-slate-400 italic">
+                              {courseTeacher?.name ? `De: ${courseTeacher.name}` : 'Otro docente'}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
@@ -1109,6 +1228,12 @@ export const TeacherDashboard: React.FC = () => {
                       <span className="text-[10px] uppercase font-bold text-indigo-600 dark:text-indigo-400">
                         {activeCourse.category} · {activeCourse.level}
                       </span>
+                      {!canManageActiveCourse && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-900/50 px-2 py-0.5 rounded">
+                          <Lock className="w-2.5 h-2.5" />
+                          Modo Consulta
+                        </span>
+                      )}
                     </div>
                     <h2 className="text-lg font-bold text-slate-900 dark:text-white">
                       {activeCourse.title}
@@ -1116,41 +1241,71 @@ export const TeacherDashboard: React.FC = () => {
                     <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 max-w-xl">
                       {activeCourse.description}
                     </p>
+                    {activeCourseTeacher && (
+                      <div className="text-[11px] text-slate-400 pt-0.5">
+                        Docente titular: <span className="font-semibold text-slate-700 dark:text-slate-200">{activeCourseTeacher.name}</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Course Action Buttons */}
                   <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => setIsEnrollmentModalOpen(true)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-xs font-semibold rounded-lg border border-emerald-200 dark:border-emerald-800 transition-colors whitespace-nowrap shadow-2xs"
-                      title="Matricular o desmatricular estudiantes en este curso"
-                    >
-                      <Users className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>Matricular Alumnos ({enrolledStudents.length})</span>
-                    </button>
+                    {canManageActiveCourse ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => setIsEnrollmentModalOpen(true)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-xs font-semibold rounded-lg border border-emerald-200 dark:border-emerald-800 transition-colors whitespace-nowrap shadow-2xs"
+                          title="Matricular o desmatricular estudiantes en este curso"
+                        >
+                          <Users className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>Matricular Alumnos ({enrolledStudents.length})</span>
+                        </button>
 
-                    <button
-                      type="button"
-                      onClick={() => openEditCourseModal(activeCourse)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 transition-colors whitespace-nowrap"
-                      title="Editar información general del curso"
-                    >
-                      <Edit3 className="w-3.5 h-3.5 text-slate-500" />
-                      <span>Editar Curso</span>
-                    </button>
+                        <button
+                          type="button"
+                          onClick={() => openEditCourseModal(activeCourse)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 transition-colors whitespace-nowrap"
+                          title="Editar información general del curso"
+                        >
+                          <Edit3 className="w-3.5 h-3.5 text-slate-500" />
+                          <span>Editar Curso</span>
+                        </button>
 
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteCourse(activeCourse)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 text-xs font-semibold rounded-lg border border-rose-200 dark:border-rose-800 transition-colors whitespace-nowrap shadow-2xs"
-                      title="Eliminar curso completo"
-                    >
-                      <Trash2 className="w-3.5 h-3.5 text-rose-600" />
-                      <span>Eliminar Curso</span>
-                    </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteCourse(activeCourse)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 text-xs font-semibold rounded-lg border border-rose-200 dark:border-rose-800 transition-colors whitespace-nowrap shadow-2xs"
+                          title="Eliminar curso completo"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                          <span>Eliminar Curso</span>
+                        </button>
+                      </>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700">
+                        <Lock className="w-3.5 h-3.5 text-amber-500" />
+                        <span>Solo Lectura (Titular: {activeCourseTeacher?.name || 'Otro Docente'})</span>
+                      </span>
+                    )}
                   </div>
                 </div>
+
+                {/* Read-Only Notice Banner when viewing another teacher's course */}
+                {!canManageActiveCourse && (
+                  <div className="mt-4 p-3.5 rounded-xl bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-900/50 flex items-start gap-3">
+                    <div className="p-1 rounded-md bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-400 shrink-0 mt-0.5">
+                      <Lock className="w-4 h-4" />
+                    </div>
+                    <div className="text-xs text-amber-900 dark:text-amber-200 leading-relaxed">
+                      <p className="font-bold">Modo Consulta Curricular (Solo Lectura)</p>
+                      <p className="text-[11px] text-amber-800/90 dark:text-amber-300/80 mt-0.5">
+                        Este curso pertenece a <span className="font-semibold underline">{activeCourseTeacher?.name || 'otro docente'}</span>.
+                        Como colega docente puedes explorar los contenidos curriculares y previsualizar las clases, pero la edición, eliminación, adición de módulos y matriculación están restringidas exclusivamente al docente titular y a los administradores.
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 {/* Modules Toolbar */}
                 <div className="flex items-center justify-between pt-4 pb-2">
@@ -1158,13 +1313,15 @@ export const TeacherDashboard: React.FC = () => {
                     Estructura Curricular ({courseModules.length} Módulos)
                   </h3>
 
-                  <button
-                    onClick={() => setIsNewModuleModalOpen(true)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-xs font-semibold rounded-lg border border-indigo-200 dark:border-indigo-800 transition-colors whitespace-nowrap"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    Añadir Módulo
-                  </button>
+                  {canManageActiveCourse && (
+                    <button
+                      onClick={() => setIsNewModuleModalOpen(true)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-xs font-semibold rounded-lg border border-indigo-200 dark:border-indigo-800 transition-colors whitespace-nowrap"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Añadir Módulo
+                    </button>
+                  )}
                 </div>
 
                 {/* Modules & Lessons List */}
@@ -1190,33 +1347,39 @@ export const TeacherDashboard: React.FC = () => {
                             </p>
                           </div>
 
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            <button
-                              onClick={() => {
-                                setActiveModuleId(module.id);
-                                setIsNewLessonModalOpen(true);
-                              }}
-                              className="px-2.5 py-1 text-[11px] font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-md shadow-2xs transition-colors flex items-center gap-1"
-                            >
-                              <Plus className="w-3 h-3" /> Crear Clase
-                            </button>
+                          {canManageActiveCourse ? (
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <button
+                                onClick={() => {
+                                  setActiveModuleId(module.id);
+                                  setIsNewLessonModalOpen(true);
+                                }}
+                                className="px-2.5 py-1 text-[11px] font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-md shadow-2xs transition-colors flex items-center gap-1"
+                              >
+                                <Plus className="w-3 h-3" /> Crear Clase
+                              </button>
 
-                            <button
-                              onClick={() => openEditModuleModal(module)}
-                              className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-white dark:hover:bg-slate-900 rounded-md transition-colors"
-                              title="Editar módulo"
-                            >
-                              <Edit3 className="w-3.5 h-3.5" />
-                            </button>
+                              <button
+                                onClick={() => openEditModuleModal(module)}
+                                className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-white dark:hover:bg-slate-900 rounded-md transition-colors"
+                                title="Editar módulo"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                              </button>
 
-                            <button
-                              onClick={() => handleDeleteModule(module)}
-                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-white dark:hover:bg-slate-900 rounded-md transition-colors"
-                              title="Eliminar módulo"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
+                              <button
+                                onClick={() => handleDeleteModule(module)}
+                                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-white dark:hover:bg-slate-900 rounded-md transition-colors"
+                                title="Eliminar módulo"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-[10px] text-slate-400 font-medium px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800/80">
+                              {module.lessons.length} clase(s)
+                            </span>
+                          )}
                         </div>
 
                         {/* Lessons in this module */}
@@ -1295,21 +1458,25 @@ export const TeacherDashboard: React.FC = () => {
                                       <Eye className="w-3.5 h-3.5" />
                                     </button>
 
-                                    <button
-                                      onClick={() => openEditLessonModal(lesson, module.id)}
-                                      className="p-1 text-slate-500 hover:text-indigo-600 rounded transition-colors"
-                                      title="Editar clase, multimedia y tareas/exámenes integrados"
-                                    >
-                                      <Edit3 className="w-3.5 h-3.5" />
-                                    </button>
+                                    {canManageActiveCourse && (
+                                      <>
+                                        <button
+                                          onClick={() => openEditLessonModal(lesson, module.id)}
+                                          className="p-1 text-slate-500 hover:text-indigo-600 rounded transition-colors"
+                                          title="Editar clase, multimedia y tareas/exámenes integrados"
+                                        >
+                                          <Edit3 className="w-3.5 h-3.5" />
+                                        </button>
 
-                                    <button
-                                      onClick={() => handleDeleteLesson(lesson)}
-                                      className="p-1 text-slate-400 hover:text-rose-600 rounded transition-colors"
-                                      title="Eliminar clase"
-                                    >
-                                      <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
+                                        <button
+                                          onClick={() => handleDeleteLesson(lesson)}
+                                          className="p-1 text-slate-400 hover:text-rose-600 rounded transition-colors"
+                                          title="Eliminar clase"
+                                        >
+                                          <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
+                                      </>
+                                    )}
                                   </div>
                                 </div>
                               );
@@ -1456,6 +1623,12 @@ export const TeacherDashboard: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => {
+                    if (manageableCourses.length === 0) {
+                      showToast('Primero debes crear un curso propio para poder asignarle tareas.');
+                      setIsNewCourseModalOpen(true);
+                      return;
+                    }
+                    const defaultCourseId = (canManageActiveCourse ? activeCourse?.id : manageableCourses[0]?.id) || '';
                     setAsgTitle('');
                     setAsgDescription('');
                     setAsgLessonId('');
@@ -1463,7 +1636,7 @@ export const TeacherDashboard: React.FC = () => {
                     setNewMaterialTitle('');
                     setNewMaterialUrl('');
                     setAsgDueDate('2026-11-15T23:59');
-                    setAsgCourseId(activeCourse?.id || myCourses[0]?.id || courses[0]?.id || '');
+                    setAsgCourseId(defaultCourseId);
                     setIsNewAssignmentModalOpen(true);
                   }}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-2xs transition-colors"
@@ -1481,6 +1654,7 @@ export const TeacherDashboard: React.FC = () => {
                 ) : (
                   assignments.map((asg) => {
                     const crs = courses.find((c) => c.id === asg.courseId);
+                    const canManageAsg = currentUser.role === 'admin' || (crs && crs.teacherId === currentUser.id);
                     const relatedSubs = submissions.filter((s) => s.assignmentId === asg.id);
                     const linkedLesson = modules
                       .flatMap((m) => m.lessons)
@@ -1527,24 +1701,33 @@ export const TeacherDashboard: React.FC = () => {
                           </div>
 
                           <div className="flex items-center gap-1.5 shrink-0">
-                            <button
-                              type="button"
-                              onClick={() => openEditAssignmentModal(asg)}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors shadow-2xs"
-                              title="Editar consigna de la tarea"
-                            >
-                              <Edit3 className="w-3 h-3 text-indigo-500" />
-                              <span>Editar</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteAssignment(asg)}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 border border-rose-200/60 dark:border-rose-900/50 rounded-lg transition-colors"
-                              title="Eliminar tarea permanentemente"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                              <span>Eliminar</span>
-                            </button>
+                            {canManageAsg ? (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => openEditAssignmentModal(asg)}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors shadow-2xs"
+                                  title="Editar consigna de la tarea"
+                                >
+                                  <Edit3 className="w-3 h-3 text-indigo-500" />
+                                  <span>Editar</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteAssignment(asg)}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 border border-rose-200/60 dark:border-rose-900/50 rounded-lg transition-colors"
+                                  title="Eliminar tarea permanentemente"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                  <span>Eliminar</span>
+                                </button>
+                              </>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium text-slate-400 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                                <Lock className="w-2.5 h-2.5 text-slate-400" />
+                                Solo lectura
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -1568,7 +1751,14 @@ export const TeacherDashboard: React.FC = () => {
                 </div>
                 <button
                   type="button"
-                  onClick={openNewQuizModal}
+                  onClick={() => {
+                    if (manageableCourses.length === 0) {
+                      showToast('Primero debes crear un curso propio para poder asignarle cuestionarios.');
+                      setIsNewCourseModalOpen(true);
+                      return;
+                    }
+                    openNewQuizModal();
+                  }}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-2xs transition-colors"
                 >
                   <Plus className="w-3.5 h-3.5" />
@@ -1584,6 +1774,7 @@ export const TeacherDashboard: React.FC = () => {
                 ) : (
                   quizzes.map((quiz) => {
                     const crs = courses.find((c) => c.id === quiz.courseId);
+                    const canManageQuiz = currentUser.role === 'admin' || (crs && crs.teacherId === currentUser.id);
                     const totalPoints = quiz.questions.reduce((sum, q) => sum + q.points, 0);
                     const linkedLesson = modules
                       .flatMap((m) => m.lessons)
@@ -1646,24 +1837,33 @@ export const TeacherDashboard: React.FC = () => {
                           </span>
 
                           <div className="flex items-center gap-1.5 shrink-0">
-                            <button
-                              type="button"
-                              onClick={() => openEditQuizModal(quiz)}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors shadow-2xs"
-                              title="Editar cuestionario y preguntas"
-                            >
-                              <Edit3 className="w-3 h-3 text-emerald-500" />
-                              <span>Editar</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteQuiz(quiz)}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 border border-rose-200/60 dark:border-rose-900/50 rounded-lg transition-colors"
-                              title="Eliminar cuestionario permanentemente"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                              <span>Eliminar</span>
-                            </button>
+                            {canManageQuiz ? (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => openEditQuizModal(quiz)}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors shadow-2xs"
+                                  title="Editar cuestionario y preguntas"
+                                >
+                                  <Edit3 className="w-3 h-3 text-emerald-500" />
+                                  <span>Editar</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteQuiz(quiz)}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 border border-rose-200/60 dark:border-rose-900/50 rounded-lg transition-colors"
+                                  title="Eliminar cuestionario permanentemente"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                  <span>Eliminar</span>
+                                </button>
+                              </>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium text-slate-400 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                                <Lock className="w-2.5 h-2.5 text-slate-400" />
+                                Solo lectura
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -2857,7 +3057,7 @@ export const TeacherDashboard: React.FC = () => {
                   onChange={(e) => setAsgCourseId(e.target.value)}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
                 >
-                  {myCourses.map((c) => (
+                  {manageableCourses.map((c) => (
                     <option key={c.id} value={c.id}>{c.title}</option>
                   ))}
                 </select>
@@ -2971,7 +3171,7 @@ export const TeacherDashboard: React.FC = () => {
                     onChange={(e) => setAsgEditCourseId(e.target.value)}
                     className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
                   >
-                    {myCourses.map((c) => (
+                    {manageableCourses.map((c) => (
                       <option key={c.id} value={c.id}>{c.title}</option>
                     ))}
                   </select>
@@ -3106,7 +3306,7 @@ export const TeacherDashboard: React.FC = () => {
                     onChange={(e) => setQuizCourseId(e.target.value)}
                     className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
                   >
-                    {myCourses.map((c) => (
+                    {manageableCourses.map((c) => (
                       <option key={c.id} value={c.id}>{c.title}</option>
                     ))}
                   </select>
@@ -3385,7 +3585,7 @@ export const TeacherDashboard: React.FC = () => {
                     onChange={(e) => setQuizCourseId(e.target.value)}
                     className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
                   >
-                    {myCourses.map((c) => (
+                    {manageableCourses.map((c) => (
                       <option key={c.id} value={c.id}>{c.title}</option>
                     ))}
                   </select>
