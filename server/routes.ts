@@ -522,11 +522,30 @@ apiRouter.delete('/courses/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     memoryStore.courses = memoryStore.courses.filter((c) => c.id !== id);
+    memoryStore.modules = memoryStore.modules.filter((m) => m.courseId !== id);
+    memoryStore.assignments = memoryStore.assignments.filter((a) => a.courseId !== id);
+    memoryStore.quizzes = memoryStore.quizzes.filter((q) => q.courseId !== id);
+    memoryStore.submissions = memoryStore.submissions.filter((s) => s.courseId !== id);
+    memoryStore.quizAttempts = memoryStore.quizAttempts.filter((qa) => qa.courseId !== id);
+    memoryStore.progress = memoryStore.progress.filter((p) => p.courseId !== id);
+    memoryStore.users = memoryStore.users.map((u) => ({
+      ...u,
+      coursesEnrolled: (u.coursesEnrolled || []).filter((cId) => cId !== id)
+    }));
 
     const db = await getMongoDb();
     if (db) {
       await db.collection('courses').deleteOne({ id });
       await db.collection('modules').deleteMany({ courseId: id });
+      await db.collection('assignments').deleteMany({ courseId: id });
+      await db.collection('quizzes').deleteMany({ courseId: id });
+      await db.collection('submissions').deleteMany({ courseId: id });
+      await db.collection('quiz_attempts').deleteMany({ courseId: id });
+      await db.collection('progress').deleteMany({ courseId: id });
+      await db.collection('users').updateMany(
+        {},
+        { $pull: { coursesEnrolled: id } as any }
+      );
     }
 
     res.json({ success: true });
@@ -534,6 +553,7 @@ apiRouter.delete('/courses/:id', async (req: Request, res: Response) => {
     res.status(500).json({ error: err.message });
   }
 });
+
 
 // -------------------------------------------------------------
 // Modules API
@@ -699,6 +719,57 @@ apiRouter.post('/quizzes', async (req: Request, res: Response) => {
   }
 });
 
+apiRouter.put('/quizzes/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+
+    const idx = memoryStore.quizzes.findIndex((q) => q.id === id);
+    if (idx >= 0) {
+      memoryStore.quizzes[idx] = { ...memoryStore.quizzes[idx], ...updates };
+    }
+
+    const db = await getMongoDb();
+    if (db) {
+      await db.collection('quizzes').updateOne({ id }, { $set: updates }, { upsert: true });
+    }
+
+    res.json({ success: true, quiz: { ...updates, id } });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+apiRouter.delete('/quizzes/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    memoryStore.quizzes = memoryStore.quizzes.filter((q) => q.id !== id);
+    memoryStore.quizAttempts = memoryStore.quizAttempts.filter((qa) => qa.quizId !== id);
+
+    memoryStore.modules = memoryStore.modules.map((m) => ({
+      ...m,
+      lessons: m.lessons.map((l) => ({
+        ...l,
+        quizIds: (l.quizIds || []).filter((qId) => qId !== id)
+      }))
+    }));
+
+    const db = await getMongoDb();
+    if (db) {
+      await db.collection('quizzes').deleteOne({ id });
+      await db.collection('quiz_attempts').deleteMany({ quizId: id });
+      await db.collection('modules').updateMany(
+        {},
+        { $pull: { 'lessons.$[].quizIds': id } as any }
+      );
+    }
+
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 apiRouter.post('/quiz-attempts', async (req: Request, res: Response) => {
   try {
     const attempt: QuizAttempt = req.body;
@@ -749,6 +820,61 @@ apiRouter.post('/assignments', async (req: Request, res: Response) => {
       );
     }
     res.status(201).json(assignment);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+apiRouter.put('/assignments/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+
+    const idx = memoryStore.assignments.findIndex((a) => a.id === id);
+    if (idx >= 0) {
+      memoryStore.assignments[idx] = { ...memoryStore.assignments[idx], ...updates };
+    }
+
+    const db = await getMongoDb();
+    if (db) {
+      await db.collection('assignments').updateOne(
+        { id },
+        { $set: updates },
+        { upsert: true }
+      );
+    }
+
+    res.json({ success: true, assignment: { ...updates, id } });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+apiRouter.delete('/assignments/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    memoryStore.assignments = memoryStore.assignments.filter((a) => a.id !== id);
+    memoryStore.submissions = memoryStore.submissions.filter((s) => s.assignmentId !== id);
+
+    memoryStore.modules = memoryStore.modules.map((m) => ({
+      ...m,
+      lessons: m.lessons.map((l) => ({
+        ...l,
+        assignmentIds: (l.assignmentIds || []).filter((aId) => aId !== id)
+      }))
+    }));
+
+    const db = await getMongoDb();
+    if (db) {
+      await db.collection('assignments').deleteOne({ id });
+      await db.collection('submissions').deleteMany({ assignmentId: id });
+      await db.collection('modules').updateMany(
+        {},
+        { $pull: { 'lessons.$[].assignmentIds': id } as any }
+      );
+    }
+
+    res.json({ success: true });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
@@ -807,6 +933,21 @@ apiRouter.put('/submissions/:id', async (req: Request, res: Response) => {
   }
 });
 
+apiRouter.delete('/submissions/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    memoryStore.submissions = memoryStore.submissions.filter((s) => s.id !== id);
+
+    const db = await getMongoDb();
+    if (db) {
+      await db.collection('submissions').deleteOne({ id });
+    }
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // -------------------------------------------------------------
 // Notifications & Chat
 // -------------------------------------------------------------
@@ -820,6 +961,41 @@ apiRouter.post('/notifications', async (req: Request, res: Response) => {
       await db.collection('notifications').updateOne({ id: notif.id }, { $set: notif }, { upsert: true });
     }
     res.status(201).json(notif);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+apiRouter.put('/notifications/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+
+    const idx = memoryStore.notifications.findIndex((n) => n.id === id);
+    if (idx >= 0) {
+      memoryStore.notifications[idx] = { ...memoryStore.notifications[idx], ...updates };
+    }
+
+    const db = await getMongoDb();
+    if (db) {
+      await db.collection('notifications').updateOne({ id }, { $set: updates }, { upsert: true });
+    }
+    res.json({ success: true, notification: { ...updates, id } });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+apiRouter.delete('/notifications/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    memoryStore.notifications = memoryStore.notifications.filter((n) => n.id !== id);
+
+    const db = await getMongoDb();
+    if (db) {
+      await db.collection('notifications').deleteOne({ id });
+    }
+    res.json({ success: true });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }

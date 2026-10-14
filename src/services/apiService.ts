@@ -324,6 +324,28 @@ class ApiService {
     }
   }
 
+  async updateQuiz(id: string, updates: Partial<Quiz>): Promise<boolean> {
+    try {
+      const res = await fetch(`${this.baseUrl}/quizzes/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  }
+
+  async deleteQuiz(id: string): Promise<boolean> {
+    try {
+      const res = await fetch(`${this.baseUrl}/quizzes/${id}`, { method: 'DELETE' });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  }
+
   async saveQuizAttempt(attempt: QuizAttempt): Promise<boolean> {
     try {
       const res = await fetch(`${this.baseUrl}/quiz-attempts`, {
@@ -345,6 +367,28 @@ class ApiService {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(assignment),
       });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  }
+
+  async updateAssignment(id: string, updates: Partial<Assignment>): Promise<boolean> {
+    try {
+      const res = await fetch(`${this.baseUrl}/assignments/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  }
+
+  async deleteAssignment(id: string): Promise<boolean> {
+    try {
+      const res = await fetch(`${this.baseUrl}/assignments/${id}`, { method: 'DELETE' });
       return res.ok;
     } catch {
       return false;
@@ -377,6 +421,15 @@ class ApiService {
     }
   }
 
+  async deleteSubmission(id: string): Promise<boolean> {
+    try {
+      const res = await fetch(`${this.baseUrl}/submissions/${id}`, { method: 'DELETE' });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  }
+
   // Notifications
   async saveNotification(notif: AppNotification): Promise<boolean> {
     try {
@@ -385,6 +438,15 @@ class ApiService {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(notif),
       });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  }
+
+  async deleteNotification(id: string): Promise<boolean> {
+    try {
+      const res = await fetch(`${this.baseUrl}/notifications/${id}`, { method: 'DELETE' });
       return res.ok;
     } catch {
       return false;

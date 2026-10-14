@@ -506,6 +506,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       linkAction: 'users'
     };
     setNotifications((prev) => [newNotif, ...prev]);
+    apiService.saveNotification(newNotif);
   };
 
   const updateUser = (id: string, updates: Partial<User>) => {
@@ -540,6 +541,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         linkAction: 'users'
       };
       setNotifications((prev) => [notif, ...prev]);
+      apiService.saveNotification(notif);
     }
   };
 
@@ -586,6 +588,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         linkAction: 'users'
       };
       setNotifications((prev) => [notif, ...prev]);
+      apiService.saveNotification(notif);
     }
   };
 
@@ -632,28 +635,39 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const enrollStudentInCourse = (courseId: string, studentId: string) => {
     const targetCourse = courses.find((c) => c.id === courseId);
+    let updatedCourseList: string[] = [];
     setCourses((prev) =>
       prev.map((c) => {
         if (c.id === courseId) {
           const currentList = c.enrolledStudents || [];
           if (!currentList.includes(studentId)) {
-            return { ...c, enrolledStudents: [...currentList, studentId] };
+            updatedCourseList = [...currentList, studentId];
+            return { ...c, enrolledStudents: updatedCourseList };
           }
         }
         return c;
       })
     );
+    if (updatedCourseList.length > 0) {
+      apiService.updateCourse(courseId, { enrolledStudents: updatedCourseList });
+    }
+
+    let updatedUserList: string[] = [];
     setUsers((prev) =>
       prev.map((u) => {
         if (u.id === studentId) {
           const currentEnrolled = u.coursesEnrolled || [];
           if (!currentEnrolled.includes(courseId)) {
-            return { ...u, coursesEnrolled: [...currentEnrolled, courseId] };
+            updatedUserList = [...currentEnrolled, courseId];
+            return { ...u, coursesEnrolled: updatedUserList };
           }
         }
         return u;
       })
     );
+    if (updatedUserList.length > 0) {
+      apiService.updateUser(studentId, { coursesEnrolled: updatedUserList });
+    }
 
     if (targetCourse) {
       const notif: AppNotification = {
@@ -667,33 +681,46 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         linkAction: 'courses'
       };
       setNotifications((prev) => [notif, ...prev]);
+      apiService.saveNotification(notif);
     }
   };
 
   const unenrollStudentFromCourse = (courseId: string, studentId: string) => {
     const targetCourse = courses.find((c) => c.id === courseId);
+    let updatedCourseList: string[] | null = null;
     setCourses((prev) =>
       prev.map((c) => {
         if (c.id === courseId) {
+          updatedCourseList = (c.enrolledStudents || []).filter((id) => id !== studentId);
           return {
             ...c,
-            enrolledStudents: (c.enrolledStudents || []).filter((id) => id !== studentId)
+            enrolledStudents: updatedCourseList
           };
         }
         return c;
       })
     );
+    if (updatedCourseList) {
+      apiService.updateCourse(courseId, { enrolledStudents: updatedCourseList });
+    }
+
+    let updatedUserList: string[] | null = null;
     setUsers((prev) =>
       prev.map((u) => {
         if (u.id === studentId) {
+          updatedUserList = (u.coursesEnrolled || []).filter((id) => id !== courseId);
           return {
             ...u,
-            coursesEnrolled: (u.coursesEnrolled || []).filter((id) => id !== courseId)
+            coursesEnrolled: updatedUserList
           };
         }
         return u;
       })
     );
+    if (updatedUserList) {
+      apiService.updateUser(studentId, { coursesEnrolled: updatedUserList });
+    }
+
     setProgress((prev) => prev.filter((p) => !(p.userId === studentId && p.courseId === courseId)));
 
     if (targetCourse) {
@@ -707,6 +734,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         timestamp: new Date().toISOString()
       };
       setNotifications((prev) => [notif, ...prev]);
+      apiService.saveNotification(notif);
     }
   };
 
@@ -767,19 +795,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateLesson = (id: string, updates: Partial<Lesson>) => {
+    let updatedParentModule: CourseModule | null = null;
     setModules((prev) =>
-      prev.map((m) => ({
-        ...m,
-        lessons: m.lessons.map((l) => (l.id === id ? { ...l, ...updates } : l))
-      }))
+      prev.map((m) => {
+        const hasLesson = m.lessons.some((l) => l.id === id);
+        if (hasLesson) {
+          const updatedM = {
+            ...m,
+            lessons: m.lessons.map((l) => (l.id === id ? { ...l, ...updates } : l))
+          };
+          updatedParentModule = updatedM;
+          return updatedM;
+        }
+        return m;
+      })
     );
+
+    if (updatedParentModule) {
+      apiService.updateModule((updatedParentModule as CourseModule).id, updatedParentModule);
+    }
 
     if (updates.assignmentIds !== undefined) {
       setAssignments((prev) =>
         prev.map((a) => {
           if (updates.assignmentIds!.includes(a.id)) {
+            apiService.updateAssignment(a.id, { lessonId: id });
             return { ...a, lessonId: id };
           } else if (a.lessonId === id) {
+            apiService.updateAssignment(a.id, { lessonId: undefined });
             return { ...a, lessonId: undefined };
           }
           return a;
@@ -791,8 +834,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setQuizzes((prev) =>
         prev.map((q) => {
           if (updates.quizIds!.includes(q.id)) {
+            apiService.updateQuiz(q.id, { lessonId: id });
             return { ...q, lessonId: id };
           } else if (q.lessonId === id) {
+            apiService.updateQuiz(q.id, { lessonId: undefined });
             return { ...q, lessonId: undefined };
           }
           return q;
@@ -802,17 +847,43 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteLesson = (id: string) => {
+    let updatedParentModule: CourseModule | null = null;
     setModules((prev) =>
-      prev.map((m) => ({
-        ...m,
-        lessons: m.lessons.filter((l) => l.id !== id)
-      }))
+      prev.map((m) => {
+        const hasLesson = m.lessons.some((l) => l.id === id);
+        if (hasLesson) {
+          const updatedM = {
+            ...m,
+            lessons: m.lessons.filter((l) => l.id !== id)
+          };
+          updatedParentModule = updatedM;
+          return updatedM;
+        }
+        return m;
+      })
     );
+
+    if (updatedParentModule) {
+      apiService.updateModule((updatedParentModule as CourseModule).id, updatedParentModule);
+    }
+
     setAssignments((prev) =>
-      prev.map((a) => (a.lessonId === id ? { ...a, lessonId: undefined } : a))
+      prev.map((a) => {
+        if (a.lessonId === id) {
+          apiService.updateAssignment(a.id, { lessonId: undefined });
+          return { ...a, lessonId: undefined };
+        }
+        return a;
+      })
     );
     setQuizzes((prev) =>
-      prev.map((q) => (q.lessonId === id ? { ...q, lessonId: undefined } : q))
+      prev.map((q) => {
+        if (q.lessonId === id) {
+          apiService.updateQuiz(q.id, { lessonId: undefined });
+          return { ...q, lessonId: undefined };
+        }
+        return q;
+      })
     );
   };
 
@@ -828,39 +899,66 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     if (quizData.lessonId) {
       setModules((prev) =>
-        prev.map((m) => ({
-          ...m,
-          lessons: m.lessons.map((l) => {
-            if (l.id === quizData.lessonId) {
-              const current = l.quizIds || [];
-              if (!current.includes(newQuizId)) {
-                return { ...l, quizIds: [...current, newQuizId] };
-              }
-            }
-            return l;
-          })
-        }))
+        prev.map((m) => {
+          const hasLesson = m.lessons.some((l) => l.id === quizData.lessonId);
+          if (hasLesson) {
+            const updatedM = {
+              ...m,
+              lessons: m.lessons.map((l) => {
+                if (l.id === quizData.lessonId) {
+                  const current = l.quizIds || [];
+                  if (!current.includes(newQuizId)) {
+                    return { ...l, quizIds: [...current, newQuizId] };
+                  }
+                }
+                return l;
+              })
+            };
+            apiService.updateModule(m.id, updatedM);
+            return updatedM;
+          }
+          return m;
+        })
       );
     }
   };
 
   const updateQuiz = (id: string, updates: Partial<Quiz>) => {
-    setQuizzes((prev) => prev.map((q) => (q.id === id ? { ...q, ...updates } : q)));
+    setQuizzes((prev) =>
+      prev.map((q) => {
+        if (q.id === id) {
+          const updated = { ...q, ...updates };
+          apiService.updateQuiz(id, updates);
+          return updated;
+        }
+        return q;
+      })
+    );
 
     if (updates.lessonId !== undefined) {
       setModules((prev) =>
-        prev.map((m) => ({
-          ...m,
-          lessons: m.lessons.map((l) => {
+        prev.map((m) => {
+          let moduleChanged = false;
+          const updatedLessons = m.lessons.map((l) => {
             const current = l.quizIds || [];
             if (l.id === updates.lessonId) {
-              if (!current.includes(id)) return { ...l, quizIds: [...current, id] };
+              if (!current.includes(id)) {
+                moduleChanged = true;
+                return { ...l, quizIds: [...current, id] };
+              }
             } else if (current.includes(id)) {
+              moduleChanged = true;
               return { ...l, quizIds: current.filter((qId) => qId !== id) };
             }
             return l;
-          })
-        }))
+          });
+          if (moduleChanged) {
+            const updatedM = { ...m, lessons: updatedLessons };
+            apiService.updateModule(m.id, updatedM);
+            return updatedM;
+          }
+          return m;
+        })
       );
     }
   };
@@ -868,14 +966,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const deleteQuiz = (id: string) => {
     setQuizzes((prev) => prev.filter((q) => q.id !== id));
     setQuizAttempts((prev) => prev.filter((qa) => qa.quizId !== id));
+    apiService.deleteQuiz(id);
+
     setModules((prev) =>
-      prev.map((m) => ({
-        ...m,
-        lessons: m.lessons.map((l) => ({
-          ...l,
-          quizIds: (l.quizIds || []).filter((qId) => qId !== id)
-        }))
-      }))
+      prev.map((m) => {
+        const hasQuizRef = m.lessons.some((l) => (l.quizIds || []).includes(id));
+        if (hasQuizRef) {
+          const updatedM = {
+            ...m,
+            lessons: m.lessons.map((l) => ({
+              ...l,
+              quizIds: (l.quizIds || []).filter((qId) => qId !== id)
+            }))
+          };
+          apiService.updateModule(m.id, updatedM);
+          return updatedM;
+        }
+        return m;
+      })
     );
   };
 
@@ -891,18 +999,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     if (asgData.lessonId) {
       setModules((prev) =>
-        prev.map((m) => ({
-          ...m,
-          lessons: m.lessons.map((l) => {
-            if (l.id === asgData.lessonId) {
-              const current = l.assignmentIds || [];
-              if (!current.includes(newAsgId)) {
-                return { ...l, assignmentIds: [...current, newAsgId] };
-              }
-            }
-            return l;
-          })
-        }))
+        prev.map((m) => {
+          const hasLesson = m.lessons.some((l) => l.id === asgData.lessonId);
+          if (hasLesson) {
+            const updatedM = {
+              ...m,
+              lessons: m.lessons.map((l) => {
+                if (l.id === asgData.lessonId) {
+                  const current = l.assignmentIds || [];
+                  if (!current.includes(newAsgId)) {
+                    return { ...l, assignmentIds: [...current, newAsgId] };
+                  }
+                }
+                return l;
+              })
+            };
+            apiService.updateModule(m.id, updatedM);
+            return updatedM;
+          }
+          return m;
+        })
       );
     }
 
@@ -921,27 +1037,47 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           linkAction: 'assignments'
         };
         setNotifications((prev) => [notif, ...prev]);
+        apiService.saveNotification(notif);
       });
     }
   };
 
   const updateAssignment = (id: string, updates: Partial<Assignment>) => {
-    setAssignments((prev) => prev.map((a) => (a.id === id ? { ...a, ...updates } : a)));
+    setAssignments((prev) =>
+      prev.map((a) => {
+        if (a.id === id) {
+          const updated = { ...a, ...updates };
+          apiService.updateAssignment(id, updates);
+          return updated;
+        }
+        return a;
+      })
+    );
 
     if (updates.lessonId !== undefined) {
       setModules((prev) =>
-        prev.map((m) => ({
-          ...m,
-          lessons: m.lessons.map((l) => {
+        prev.map((m) => {
+          let moduleChanged = false;
+          const updatedLessons = m.lessons.map((l) => {
             const current = l.assignmentIds || [];
             if (l.id === updates.lessonId) {
-              if (!current.includes(id)) return { ...l, assignmentIds: [...current, id] };
+              if (!current.includes(id)) {
+                moduleChanged = true;
+                return { ...l, assignmentIds: [...current, id] };
+              }
             } else if (current.includes(id)) {
+              moduleChanged = true;
               return { ...l, assignmentIds: current.filter((aId) => aId !== id) };
             }
             return l;
-          })
-        }))
+          });
+          if (moduleChanged) {
+            const updatedM = { ...m, lessons: updatedLessons };
+            apiService.updateModule(m.id, updatedM);
+            return updatedM;
+          }
+          return m;
+        })
       );
     }
   };
@@ -949,14 +1085,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const deleteAssignment = (id: string) => {
     setAssignments((prev) => prev.filter((a) => a.id !== id));
     setSubmissions((prev) => prev.filter((s) => s.assignmentId !== id));
+    apiService.deleteAssignment(id);
+
     setModules((prev) =>
-      prev.map((m) => ({
-        ...m,
-        lessons: m.lessons.map((l) => ({
-          ...l,
-          assignmentIds: (l.assignmentIds || []).filter((aId) => aId !== id)
-        }))
-      }))
+      prev.map((m) => {
+        const hasAsgRef = m.lessons.some((l) => (l.assignmentIds || []).includes(id));
+        if (hasAsgRef) {
+          const updatedM = {
+            ...m,
+            lessons: m.lessons.map((l) => ({
+              ...l,
+              assignmentIds: (l.assignmentIds || []).filter((aId) => aId !== id)
+            }))
+          };
+          apiService.updateModule(m.id, updatedM);
+          return updatedM;
+        }
+        return m;
+      })
     );
   };
 
@@ -998,6 +1144,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         linkAction: 'grading'
       };
       setNotifications((prev) => [notif, ...prev]);
+      apiService.saveNotification(notif);
     }
 
     // Auto-update student progress if assignment belongs to a lesson
@@ -1030,6 +1177,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       })
     );
 
+    // Persist grade to MongoDB backend
+    apiService.updateSubmission(id, {
+      status: 'graded',
+      score,
+      feedback,
+      rubricScores
+    });
+
     if (studentId) {
       const notif: AppNotification = {
         id: `notif_${Date.now()}`,
@@ -1042,6 +1197,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         linkAction: 'grades'
       };
       setNotifications((prev) => [notif, ...prev]);
+      apiService.saveNotification(notif);
     }
   };
 
@@ -1073,6 +1229,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       linkAction: 'grades'
     };
     setNotifications((prev) => [notif, ...prev]);
+    apiService.saveNotification(notif);
   };
 
   // Chat
@@ -1086,6 +1243,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       read: false
     };
     setChatMessages((prev) => [...prev, newMsg]);
+    apiService.saveChatMessage(newMsg);
 
     // If receiver is a real user, send notification
     const notif: AppNotification = {
@@ -1099,6 +1257,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       linkAction: 'chat'
     };
     setNotifications((prev) => [notif, ...prev]);
+    apiService.saveNotification(notif);
   };
 
   // Notifications
@@ -1117,15 +1276,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setProgress((prev) => {
       const existing = prev.find((p) => p.userId === currentUser.id && p.courseId === courseId);
       if (!existing) {
-        return [
-          ...prev,
-          {
-            userId: currentUser.id,
-            courseId,
-            completedLessonIds: [lessonId],
-            lastAccessedAt: new Date().toISOString()
-          }
-        ];
+        const targetProgress = {
+          userId: currentUser.id,
+          courseId,
+          completedLessonIds: [lessonId],
+          lastAccessedAt: new Date().toISOString()
+        };
+        apiService.saveProgress(targetProgress);
+        return [...prev, targetProgress];
       }
       const isCompleted = existing.completedLessonIds.includes(lessonId);
       const newCompleted = isCompleted
@@ -1152,15 +1310,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setProgress((prev) => {
       const existing = prev.find((p) => p.userId === currentUser.id && p.courseId === courseId);
       if (!existing) {
-        return [
-          ...prev,
-          {
-            userId: currentUser.id,
-            courseId,
-            completedLessonIds: [lessonId],
-            lastAccessedAt: new Date().toISOString()
-          }
-        ];
+        const targetProgress = {
+          userId: currentUser.id,
+          courseId,
+          completedLessonIds: [lessonId],
+          lastAccessedAt: new Date().toISOString()
+        };
+        apiService.saveProgress(targetProgress);
+        return [...prev, targetProgress];
       }
       const targetProgress = {
         userId: currentUser.id,
@@ -1183,20 +1340,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const recordCourseAccess = (courseId: string) => {
     setProgress((prev) => {
       const existing = prev.find((p) => p.userId === currentUser.id && p.courseId === courseId);
-      if (!existing) {
-        return [
-          ...prev,
-          {
+      const targetProgress = existing
+        ? { ...existing, lastAccessedAt: new Date().toISOString() }
+        : {
             userId: currentUser.id,
             courseId,
             completedLessonIds: [],
             lastAccessedAt: new Date().toISOString()
-          }
-        ];
+          };
+      apiService.saveProgress(targetProgress);
+      if (!existing) {
+        return [...prev, targetProgress];
       }
       return prev.map((p) =>
         p.userId === currentUser.id && p.courseId === courseId
-          ? { ...p, lastAccessedAt: new Date().toISOString() }
+          ? targetProgress
           : p
       );
     });

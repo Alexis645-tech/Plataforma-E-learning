@@ -10,7 +10,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const server = http.createServer(app);
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT) || 3001;
 
 // Setup Vite in Dev or serve static in Prod
 async function startServer() {
@@ -37,8 +37,21 @@ async function startServer() {
     }
   }
 
+  server.on('error', (err: any) => {
+    if (err.code === 'EADDRINUSE') {
+      const nextPort = PORT + 1;
+      console.warn(`[Server] Puerto en uso, intentando en http://localhost:${nextPort}...`);
+      server.listen(nextPort, () => {
+        console.log(`EduSphere LMS server running on http://localhost:${nextPort}`);
+        getMongoClient().catch(() => {});
+      });
+    } else {
+      console.error('[Server Error]', err);
+    }
+  });
+
   server.listen(PORT, () => {
-    console.log(`EduSphere LMS server with MongoDB API running on http://0.0.0.0:${PORT}`);
+    console.log(`EduSphere LMS server with MongoDB API running on http://localhost:${PORT}`);
     getMongoClient().catch(() => {});
   });
 }

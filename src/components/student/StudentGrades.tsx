@@ -19,7 +19,7 @@ export const StudentGrades: React.FC = () => {
   gradedSubs.forEach((s) => (totalScoreSum += s.score || 0));
   myQuizAttempts.forEach((q) => (totalScoreSum += q.percentage));
 
-  const averageScore = totalGradedCount > 0 ? (totalScoreSum / totalGradedCount).toFixed(1) : '95.0';
+  const averageScore = totalGradedCount > 0 ? (totalScoreSum / totalGradedCount).toFixed(1) : null;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-150">
@@ -41,7 +41,7 @@ export const StudentGrades: React.FC = () => {
           <div>
             <div className="text-[10px] text-slate-400 uppercase font-bold">Promedio Ponderado</div>
             <div className="text-lg font-bold font-mono text-emerald-600 dark:text-emerald-400 tabular-nums">
-              {averageScore} / 100
+              {averageScore !== null ? `${averageScore} / 100` : 'Sin calificaciones'}
             </div>
           </div>
         </div>

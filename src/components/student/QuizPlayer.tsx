@@ -34,9 +34,10 @@ export const QuizPlayer: React.FC<QuizPlayerProps> = ({ quiz, onBack }) => {
   const isUnlimited = maxAttempts === 'unlimited';
   const canRetry = isUnlimited || studentAttempts.length < (maxAttempts as number);
 
-  const currentQuestion = quiz.questions[currentQuestionIndex];
-  const totalQuestions = quiz.questions.length;
-  const maxScore = quiz.questions.reduce((sum, q) => sum + q.points, 0);
+  const questions = quiz.questions || [];
+  const totalQuestions = questions.length;
+  const currentQuestion = questions[currentQuestionIndex];
+  const maxScore = questions.reduce((sum, q) => sum + (q.points || 0), 0);
 
   const handleSelectOption = (questionId: string, optionIndex: number) => {
     if (isSubmitted) return;
@@ -48,12 +49,12 @@ export const QuizPlayer: React.FC<QuizPlayerProps> = ({ quiz, onBack }) => {
 
   const calculateResults = () => {
     let earnedScore = 0;
-    quiz.questions.forEach((q) => {
+    questions.forEach((q) => {
       if (selectedAnswers[q.id] === q.correctIndex) {
-        earnedScore += q.points;
+        earnedScore += q.points || 0;
       }
     });
-    const percentage = Math.round((earnedScore / maxScore) * 100);
+    const percentage = maxScore > 0 ? Math.round((earnedScore / maxScore) * 100) : 0;
     const passed = percentage >= 70;
 
     return { earnedScore, percentage, passed };
@@ -119,8 +120,27 @@ export const QuizPlayer: React.FC<QuizPlayerProps> = ({ quiz, onBack }) => {
           </p>
         </div>
 
-        {/* RESULTS SCREEN */}
-        {isSubmitted && results ? (
+        {totalQuestions === 0 ? (
+          <div className="py-12 text-center space-y-4">
+            <div className="w-12 h-12 mx-auto rounded-full bg-amber-50 dark:bg-amber-950/40 flex items-center justify-center text-amber-600">
+              <AlertCircle className="w-6 h-6" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-sm font-bold text-slate-800 dark:text-white">
+                Cuestionario en preparación
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+                Este cuestionario aún no contiene preguntas asignadas por el docente.
+              </p>
+            </div>
+            <button
+              onClick={onBack}
+              className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold"
+            >
+              Volver al Curso
+            </button>
+          </div>
+        ) : isSubmitted && results ? (
           <div className="space-y-6 animate-in zoom-in-95 duration-200">
             <div
               className={`p-6 rounded-2xl border text-center space-y-3 ${
@@ -256,18 +276,18 @@ export const QuizPlayer: React.FC<QuizPlayerProps> = ({ quiz, onBack }) => {
             {/* Progress indicator */}
             <div className="flex items-center justify-between text-xs text-slate-400 pb-2 border-b border-slate-100 dark:border-slate-800">
               <span>Pregunta {currentQuestionIndex + 1} de {totalQuestions}</span>
-              <span className="font-mono text-indigo-600 font-semibold">{currentQuestion.points} puntos</span>
+              <span className="font-mono text-indigo-600 font-semibold">{currentQuestion?.points || 0} puntos</span>
             </div>
 
             {/* Question prompt */}
             <div className="space-y-4">
               <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white leading-relaxed">
-                {currentQuestion.prompt}
+                {currentQuestion?.prompt}
               </h2>
 
               {/* Options */}
               <div className="space-y-2">
-                {currentQuestion.options.map((option, idx) => {
+                {currentQuestion?.options?.map((option, idx) => {
                   const isSelected = selectedAnswers[currentQuestion.id] === idx;
                   return (
                     <button

@@ -46,6 +46,7 @@ export const MongoDatabaseModal: React.FC<MongoDatabaseModalProps> = ({ isOpen, 
 
   const [isSyncing, setIsSyncing] = useState(false);
   const [isSeeding, setIsSeeding] = useState(false);
+  const [showSeedConfirm, setShowSeedConfirm] = useState(false);
   const [isRehashing, setIsRehashing] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const [syncMessage, setSyncMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -118,11 +119,7 @@ export const MongoDatabaseModal: React.FC<MongoDatabaseModalProps> = ({ isOpen, 
     }
   };
 
-  const handleSeedDatabase = async () => {
-    if (!confirm('¿Deseas inicializar MongoDB con el catálogo completo de datos? Las contraseñas de todos los usuarios se crearán encriptadas con bcrypt (salt rounds = 10).')) {
-      return;
-    }
-
+  const executeSeedDatabase = async () => {
     setIsSeeding(true);
     setSyncMessage(null);
     try {
@@ -442,6 +439,43 @@ mongodb+srv://tu_usuario:tu_contraseña@cluster0.abcde.mongodb.net/edusphere?ret
             </ol>
           </div>
 
+          {/* Confirmation Box for Seeding */}
+          {showSeedConfirm && (
+            <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-800 space-y-3 animate-in fade-in duration-150">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <div>
+                  <h5 className="text-xs font-bold text-amber-900 dark:text-amber-200">
+                    ¿Deseas inicializar MongoDB con el catálogo completo de datos?
+                  </h5>
+                  <p className="text-[11px] text-amber-800 dark:text-amber-300 mt-1 leading-relaxed">
+                    Las contraseñas de todos los usuarios se crearán encriptadas con <strong>bcrypt</strong> (salt rounds = 10). Esta acción reestablecerá los datos demo en tu base de datos MongoDB.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center justify-end gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowSeedConfirm(false)}
+                  className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowSeedConfirm(false);
+                    executeSeedDatabase();
+                  }}
+                  disabled={isSeeding}
+                  className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-amber-600 hover:bg-amber-700 text-white transition shadow-2xs disabled:opacity-50"
+                >
+                  {isSeeding ? 'Inicializando...' : 'Confirmar e Inicializar'}
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Actions */}
           <div className="flex flex-col sm:flex-row gap-3 pt-2">
             <button
@@ -453,7 +487,7 @@ mongodb+srv://tu_usuario:tu_contraseña@cluster0.abcde.mongodb.net/edusphere?ret
               {isSyncing ? 'Sincronizando...' : 'Subir todos los datos a MongoDB'}
             </button>
             <button
-              onClick={handleSeedDatabase}
+              onClick={() => setShowSeedConfirm(true)}
               disabled={isSeeding}
               className="flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium rounded-xl transition disabled:opacity-50"
             >
