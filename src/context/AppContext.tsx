@@ -273,6 +273,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   }, []);
 
+  // Auto-sync with MongoDB Atlas when tab gains focus or becomes visible
+  useEffect(() => {
+    const handleSync = () => {
+      if (document.visibilityState === 'visible') {
+        reloadFromBackend();
+      }
+    };
+    window.addEventListener('focus', handleSync);
+    document.addEventListener('visibilitychange', handleSync);
+    return () => {
+      window.removeEventListener('focus', handleSync);
+      document.removeEventListener('visibilitychange', handleSync);
+    };
+  }, []);
+
   const applyThemeToDOM = (t: 'light' | 'dark') => {
     const root = document.documentElement;
     const body = document.body;
@@ -361,6 +376,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setSelectedCourseId(null);
         setSelectedLessonId(null);
         setSelectedQuizId(null);
+        await reloadFromBackend();
         return { success: true };
       } else if (apiRes.error && (apiRes.error.includes('incorrecta') || apiRes.error.includes('no se encuentra'))) {
         return { success: false, error: apiRes.error };
@@ -418,16 +434,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setSelectedCourseId(null);
     setSelectedLessonId(null);
     setSelectedQuizId(null);
+    await reloadFromBackend();
     return { success: true };
   };
 
-  const loginAsUser = (user: User) => {
+  const loginAsUser = async (user: User) => {
     setCurrentUserId(user.id);
     setIsAuthenticated(true);
     setActiveTab('dashboard');
     setSelectedCourseId(null);
     setSelectedLessonId(null);
     setSelectedQuizId(null);
+    await reloadFromBackend();
   };
 
   const logout = () => {
@@ -447,7 +465,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   };
 
-  const switchRole = (role: UserRole) => {
+  const switchRole = async (role: UserRole) => {
     const targetUser = users.find((u) => u.role === role);
     if (targetUser) {
       setCurrentUserId(targetUser.id);
@@ -455,6 +473,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setSelectedCourseId(null);
       setSelectedLessonId(null);
       setSelectedQuizId(null);
+      await reloadFromBackend();
     }
   };
 

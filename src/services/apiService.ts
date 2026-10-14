@@ -53,9 +53,20 @@ export interface BootstrapResponse {
 class ApiService {
   private baseUrl = '/api';
 
+  private getHeaders(custom: Record<string, string> = {}) {
+    return {
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      ...custom
+    };
+  }
+
   async getHealth() {
     try {
-      const res = await fetch(`${this.baseUrl}/health`);
+      const res = await fetch(`${this.baseUrl}/health?_t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: this.getHeaders()
+      });
       if (!res.ok) return null;
       return await res.json();
     } catch {
@@ -65,7 +76,10 @@ class ApiService {
 
   async getDbStatus(): Promise<DbStatusResponse | null> {
     try {
-      const res = await fetch(`${this.baseUrl}/db/status`);
+      const res = await fetch(`${this.baseUrl}/db/status?_t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: this.getHeaders()
+      });
       if (!res.ok) return null;
       return await res.json();
     } catch {
@@ -75,7 +89,10 @@ class ApiService {
 
   async fetchBootstrap(): Promise<BootstrapResponse | null> {
     try {
-      const res = await fetch(`${this.baseUrl}/bootstrap`);
+      const res = await fetch(`${this.baseUrl}/bootstrap?_t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: this.getHeaders()
+      });
       if (!res.ok) return null;
       return await res.json();
     } catch (e) {

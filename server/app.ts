@@ -23,6 +23,26 @@ export const app = express();
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
+// Anti-caching and CORS headers to ensure real-time synchronization across devices
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Pragma, Cache-Control');
+
+  if (req.url.startsWith('/api') || req.url.includes('db') || req.url.includes('bootstrap') || req.url.includes('courses')) {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader('Surrogate-Control', 'no-store');
+  }
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  next();
+});
+
 // Server console logger to trace API calls in Vercel Runtime Logs
 app.use((req, res, next) => {
   if (req.url.startsWith('/api') || req.url.includes('db') || req.url.includes('health') || req.url.includes('auth')) {

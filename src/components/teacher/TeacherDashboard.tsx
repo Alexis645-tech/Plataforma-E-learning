@@ -29,7 +29,8 @@ import {
   RotateCcw,
   Eye,
   Link2,
-  Paperclip
+  Paperclip,
+  RefreshCw
 } from 'lucide-react';
 import { MediaRenderer } from '../common/MediaRenderer';
 import { resolveMediaEmbedInfo } from '../../utils/mediaUtils';
@@ -63,8 +64,11 @@ export const TeacherDashboard: React.FC = () => {
     updateQuiz,
     deleteQuiz,
     setActiveTab,
-    activeTab
+    activeTab,
+    reloadFromBackend
   } = useApp();
+
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Active view within Teacher: 'courses' | 'grading' | 'assignments'
   const [teacherView, setTeacherView] = useState<'courses' | 'grading' | 'assignments'>(() => {
@@ -794,6 +798,20 @@ export const TeacherDashboard: React.FC = () => {
 
         <div className="flex items-center gap-2">
           <button
+            onClick={async () => {
+              setIsSyncing(true);
+              await reloadFromBackend();
+              setIsSyncing(false);
+              showToast('Plataforma sincronizada en tiempo real con MongoDB Atlas.');
+            }}
+            disabled={isSyncing}
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap shadow-2xs border border-slate-200 dark:border-slate-700 disabled:opacity-50"
+            title="Sincronizar datos con MongoDB Atlas"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-indigo-600 dark:text-indigo-400' : ''}`} />
+            <span>{isSyncing ? 'Sincronizando...' : 'Sincronizar'}</span>
+          </button>
+          <button
             onClick={() => setIsNewCourseModalOpen(true)}
             className="inline-flex items-center gap-2 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow-sm shadow-indigo-600/30 transition-colors whitespace-nowrap"
           >
@@ -987,8 +1005,17 @@ export const TeacherDashboard: React.FC = () => {
 
             <div className="space-y-2">
               {displayedCourses.length === 0 ? (
-                <div className="p-6 text-center text-xs text-slate-400 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
-                  No hay cursos en esta vista. Haz clic en "+ Nuevo Curso" para comenzar.
+                <div className="p-6 text-center text-xs text-slate-400 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2">
+                  <p>No tienes cursos asignados a tu usuario ({currentUser.name}) en esta vista.</p>
+                  {courses.length > 0 && courseFilter === 'my' && (
+                    <button
+                      type="button"
+                      onClick={() => setCourseFilter('all')}
+                      className="inline-block px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400 font-semibold text-xs hover:underline"
+                    >
+                      Ver todos los cursos del campus ({courses.length})
+                    </button>
+                  )}
                 </div>
               ) : (
                 displayedCourses.map((c) => {
@@ -997,6 +1024,7 @@ export const TeacherDashboard: React.FC = () => {
                   let lessonCount = 0;
                   mods.forEach((m) => (lessonCount += m.lessons.length));
                   const studentCount = (c.enrolledStudents || []).length;
+                  const courseTeacher = users.find((u) => u.id === c.teacherId);
 
                   return (
                     <div
@@ -1019,6 +1047,11 @@ export const TeacherDashboard: React.FC = () => {
                       <h3 className="text-xs font-bold text-slate-900 dark:text-white mt-1 line-clamp-1">
                         {c.title}
                       </h3>
+                      {courseFilter === 'all' && (
+                        <div className="mt-1 text-[10px] text-slate-500 dark:text-slate-400">
+                          Docente: <span className="font-semibold text-slate-700 dark:text-slate-200">{courseTeacher?.name || 'Docente Asignado'}</span>
+                        </div>
+                      )}
                       <div className="mt-2 text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <span>{mods.length} mód.</span>
