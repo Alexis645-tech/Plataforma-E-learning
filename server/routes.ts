@@ -28,7 +28,7 @@ import {
   StudentProgress,
   AppNotification,
   ChatMessage
-} from '../src/types';
+} from '../src/types/index';
 
 export const apiRouter = Router();
 

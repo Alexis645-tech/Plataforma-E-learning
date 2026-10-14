@@ -22,7 +22,7 @@ import {
   ChatMessage,
   AppNotification,
   StudentProgress
-} from '../src/types';
+} from '../src/types/index';
 import {
   hashPasswordSync,
   isBcryptHash,
