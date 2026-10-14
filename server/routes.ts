@@ -321,7 +321,7 @@ apiRouter.post('/auth/register', async (req: Request, res: Response) => {
       department: department ? String(department).trim() : 'Tecnología e Informática',
       avatar: `https://images.unsplash.com/photo-${1534528741775 + Math.floor(Math.random() * 800)}?w=150&auto=format&fit=crop&q=80`,
       createdAt: new Date().toISOString().split('T')[0],
-      coursesEnrolled: ['crs_fullstack_1'],
+      coursesEnrolled: [],
     };
 
     memoryStore.users.push(newUser);

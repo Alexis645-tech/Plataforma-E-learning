@@ -137,7 +137,9 @@ export const StudentDashboard: React.FC = () => {
             ¡Hola, {currentUser.name.split(' ')[0]}! Continúa tu ruta de aprendizaje
           </h1>
           <p className="text-xs text-indigo-100/80 mt-1.5 leading-relaxed">
-            Tienes {myCourses.length} cursos activos matriculados por tus docentes y material interactivo listo para cursar.
+            {myCourses.length === 0
+              ? 'Aún no tienes cursos activos. Tus docentes te matricularán para que puedas acceder al material y clases.'
+              : `Tienes ${myCourses.length} ${myCourses.length === 1 ? 'curso activo matriculado' : 'cursos activos matriculados'} por tus docentes y material interactivo listo para cursar.`}
           </p>
         </div>
       </div>
@@ -199,13 +201,17 @@ export const StudentDashboard: React.FC = () => {
           <div className="mt-3 text-2xl font-bold text-emerald-600 dark:text-emerald-400 font-mono tabular-nums">
             {(() => {
               const graded = mySubmissions.filter((s) => s.status === 'graded' && s.score !== undefined);
-              if (graded.length === 0) return '95.0';
-              const avg = graded.reduce((sum, s) => sum + (s.score || 0), 0) / graded.length;
-              return avg.toFixed(1);
-            })()} pts
+              const attempts = quizAttempts.filter((a) => a.studentId === currentUser.id && (a.percentage !== undefined || a.score !== undefined));
+              const totalItems = graded.length + attempts.length;
+              if (totalItems === 0) return '0.0 pts';
+              const totalScore = graded.reduce((sum, s) => sum + (s.score || 0), 0) + attempts.reduce((sum, a) => sum + (a.percentage ?? a.score ?? 0), 0);
+              return `${(totalScore / totalItems).toFixed(1)} pts`;
+            })()}
           </div>
           <div className="mt-1 text-[11px] text-slate-400">
-            Rendimiento en plataforma
+            {mySubmissions.filter((s) => s.status === 'graded').length + quizAttempts.filter((a) => a.studentId === currentUser.id).length === 0
+              ? 'Sin evaluaciones rendidas aún'
+              : 'Rendimiento en plataforma'}
           </div>
         </div>
       </div>
