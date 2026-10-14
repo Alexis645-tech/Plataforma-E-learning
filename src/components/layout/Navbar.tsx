@@ -173,24 +173,26 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, isSidebarOpen }
 
   return (
     <header className="sticky top-0 z-40 w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 transition-colors">
-      <div className="flex items-center justify-between px-4 lg:px-8 h-16 gap-4">
+      <div className="flex items-center justify-between px-3 sm:px-4 lg:px-8 h-16 gap-2 sm:gap-4 max-w-full">
         {/* Left Zone: Brand and Mobile toggle */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <button
             onClick={onToggleSidebar}
-            className="p-2 -ml-2 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white rounded-lg lg:hidden"
+            className="p-1.5 sm:p-2 -ml-1 sm:-ml-2 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white rounded-lg lg:hidden shrink-0"
             aria-label="Alternar menú lateral"
           >
             {isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
 
-          <a href="#" onClick={(e) => { e.preventDefault(); setActiveTab('dashboard'); }} className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-500 flex items-center justify-center text-white shadow-sm shadow-indigo-500/20 group-hover:scale-105 transition-transform">
-              <GraduationCap className="w-5 h-5" />
+          <a href="#" onClick={(e) => { e.preventDefault(); setActiveTab('dashboard'); }} className="flex items-center gap-2 group min-w-0">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-500 flex items-center justify-center text-white shadow-sm shadow-indigo-500/20 group-hover:scale-105 transition-transform shrink-0">
+              <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div className="flex flex-col">
-              <span className="text-lg font-bold tracking-tight text-slate-900 dark:text-white font-sans whitespace-nowrap">
-                Alexis Castro Academy<span className="text-indigo-600 dark:text-indigo-400">.</span>
+            <div className="flex flex-col min-w-0">
+              <span className="text-sm sm:text-base md:text-lg font-bold tracking-tight text-slate-900 dark:text-white font-sans truncate">
+                <span className="inline sm:hidden">Alexis Castro</span>
+                <span className="hidden sm:inline">Alexis Castro Academy</span>
+                <span className="text-indigo-600 dark:text-indigo-400">.</span>
               </span>
             </div>
           </a>
@@ -207,11 +209,11 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, isSidebarOpen }
         </div>
 
         {/* Right Zone: Controls & Profile */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-1 sm:gap-2.5 shrink-0">
           {/* Dark Mode Toggle */}
           <button
             onClick={toggleTheme}
-            className="p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
+            className="p-1.5 sm:p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all"
             title={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
             aria-label={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
           >
@@ -226,13 +228,13 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, isSidebarOpen }
           <div className="relative" ref={notifRef}>
             <button
               onClick={() => setIsNotifOpen(!isNotifOpen)}
-              className="relative p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+              className="relative p-1.5 sm:p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
               title="Notificaciones"
               aria-label="Notificaciones"
             >
               <Bell className="w-4 h-4" />
               {unreadNotifs.length > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-indigo-600 ring-2 ring-white dark:ring-slate-900"></span>
+                <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-indigo-600 ring-2 ring-white dark:ring-slate-900"></span>
               )}
             </button>
 
@@ -320,18 +322,18 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, isSidebarOpen }
           <div className="relative" ref={userRef}>
             <button
               onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
-              className="flex items-center gap-2 pl-2 pr-1.5 py-1 rounded-full border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              className="flex items-center gap-1.5 sm:gap-2 pl-1.5 sm:pl-2 pr-1.5 py-1 rounded-full border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
             >
               <img
                 src={currentUser.avatar}
                 alt={currentUser.name}
                 referrerPolicy="no-referrer"
-                className="w-7 h-7 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700"
+                className="w-6 h-6 sm:w-7 sm:h-7 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700 shrink-0"
               />
-              <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 hidden sm:inline max-w-[120px] truncate">
+              <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 hidden md:inline max-w-[100px] truncate">
                 {currentUser.name.split(' ')[0]}
               </span>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
             </button>
 
             {isUserDropdownOpen && (

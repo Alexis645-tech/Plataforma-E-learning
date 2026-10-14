@@ -128,15 +128,15 @@ export const StudentDashboard: React.FC = () => {
   return (
     <div className="space-y-8 animate-in fade-in duration-150">
       {/* Welcome Banner */}
-      <div className="p-6 rounded-2xl bg-gradient-to-r from-indigo-900 via-indigo-800 to-slate-900 text-white shadow-md relative overflow-hidden">
+      <div className="p-4 sm:p-6 rounded-2xl bg-gradient-to-r from-indigo-900 via-indigo-800 to-slate-900 text-white shadow-md relative overflow-hidden">
         <div className="relative z-10 max-w-2xl">
           <span className="text-[10px] uppercase font-bold tracking-wider text-indigo-300">
             Campus Virtual · Estudiante
           </span>
-          <h1 className="text-2xl font-bold tracking-tight mt-1">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight mt-1 break-words">
             ¡Hola, {currentUser.name.split(' ')[0]}! Continúa tu ruta de aprendizaje
           </h1>
-          <p className="text-xs text-indigo-100/80 mt-1.5 leading-relaxed">
+          <p className="text-xs sm:text-sm text-indigo-100/80 mt-1.5 leading-relaxed break-words">
             {myCourses.length === 0
               ? 'Aún no tienes cursos activos. Tus docentes te matricularán para que puedas acceder al material y clases.'
               : `Tienes ${myCourses.length} ${myCourses.length === 1 ? 'curso activo matriculado' : 'cursos activos matriculados'} por tus docentes y material interactivo listo para cursar.`}
@@ -144,61 +144,61 @@ export const StudentDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Metrics Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
-          <div className="flex items-center justify-between text-xs font-medium text-slate-500">
-            <span>Cursos Matriculados</span>
-            <div className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600">
-              <BookOpen className="w-4 h-4" />
+      {/* Metrics Row - Responsive 2x2 on mobile, 4 columns on desktop */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+        <div className="p-3 sm:p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
+          <div className="flex items-center justify-between text-[11px] sm:text-xs font-medium text-slate-500">
+            <span className="truncate">Cursos Matriculados</span>
+            <div className="p-1.5 sm:p-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 shrink-0">
+              <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
-          <div className="mt-3 text-2xl font-bold text-slate-900 dark:text-white font-mono tabular-nums">
+          <div className="mt-2 sm:mt-3 text-xl sm:text-2xl font-bold text-slate-900 dark:text-white font-mono tabular-nums">
             {myCourses.length}
           </div>
-          <div className="mt-1 text-[11px] text-slate-400">
-            Matrícula gestionada por docentes
+          <div className="mt-0.5 sm:mt-1 text-[10px] sm:text-[11px] text-slate-400 truncate">
+            Matrícula docente
           </div>
         </div>
 
-        <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
-          <div className="flex items-center justify-between text-xs font-medium text-slate-500">
-            <span>Tareas Enviadas</span>
-            <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600">
-              <CheckCircle2 className="w-4 h-4" />
+        <div className="p-3 sm:p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
+          <div className="flex items-center justify-between text-[11px] sm:text-xs font-medium text-slate-500">
+            <span className="truncate">Tareas Enviadas</span>
+            <div className="p-1.5 sm:p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 shrink-0">
+              <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
-          <div className="mt-3 text-2xl font-bold text-slate-900 dark:text-white font-mono tabular-nums">
+          <div className="mt-2 sm:mt-3 text-xl sm:text-2xl font-bold text-slate-900 dark:text-white font-mono tabular-nums">
             {mySubmissions.length}
           </div>
-          <div className="mt-1 text-[11px] text-slate-400">
+          <div className="mt-0.5 sm:mt-1 text-[10px] sm:text-[11px] text-slate-400 truncate">
             {mySubmissions.filter((s) => s.status === 'graded').length} con nota final
           </div>
         </div>
 
-        <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
-          <div className="flex items-center justify-between text-xs font-medium text-slate-500">
-            <span>Exámenes Rendidos</span>
-            <div className="p-2 rounded-lg bg-violet-50 dark:bg-violet-950/40 text-violet-600">
-              <Award className="w-4 h-4" />
+        <div className="p-3 sm:p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
+          <div className="flex items-center justify-between text-[11px] sm:text-xs font-medium text-slate-500">
+            <span className="truncate">Exámenes Rendidos</span>
+            <div className="p-1.5 sm:p-2 rounded-lg bg-violet-50 dark:bg-violet-950/40 text-violet-600 shrink-0">
+              <Award className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
-          <div className="mt-3 text-2xl font-bold text-slate-900 dark:text-white font-mono tabular-nums">
+          <div className="mt-2 sm:mt-3 text-xl sm:text-2xl font-bold text-slate-900 dark:text-white font-mono tabular-nums">
             {quizAttempts.filter((a) => a.studentId === currentUser.id).length}
           </div>
-          <div className="mt-1 text-[11px] text-slate-400">
+          <div className="mt-0.5 sm:mt-1 text-[10px] sm:text-[11px] text-slate-400 truncate">
             Cuestionarios evaluados
           </div>
         </div>
 
-        <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
-          <div className="flex items-center justify-between text-xs font-medium text-slate-500">
-            <span>Promedio General</span>
-            <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600">
-              <Award className="w-4 h-4" />
+        <div className="p-3 sm:p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
+          <div className="flex items-center justify-between text-[11px] sm:text-xs font-medium text-slate-500">
+            <span className="truncate">Promedio General</span>
+            <div className="p-1.5 sm:p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 shrink-0">
+              <Award className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
-          <div className="mt-3 text-2xl font-bold text-emerald-600 dark:text-emerald-400 font-mono tabular-nums">
+          <div className="mt-2 sm:mt-3 text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400 font-mono tabular-nums truncate">
             {(() => {
               const graded = mySubmissions.filter((s) => s.status === 'graded' && s.score !== undefined);
               const attempts = quizAttempts.filter((a) => a.studentId === currentUser.id && (a.percentage !== undefined || a.score !== undefined));
@@ -208,16 +208,16 @@ export const StudentDashboard: React.FC = () => {
               return `${(totalScore / totalItems).toFixed(1)} pts`;
             })()}
           </div>
-          <div className="mt-1 text-[11px] text-slate-400">
+          <div className="mt-0.5 sm:mt-1 text-[10px] sm:text-[11px] text-slate-400 truncate">
             {mySubmissions.filter((s) => s.status === 'graded').length + quizAttempts.filter((a) => a.studentId === currentUser.id).length === 0
-              ? 'Sin evaluaciones rendidas aún'
-              : 'Rendimiento en plataforma'}
+              ? 'Sin evaluaciones aún'
+              : 'Rendimiento'}
           </div>
         </div>
       </div>
 
       {/* Student Navigation Filter Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2 overflow-x-auto">
+      <div className="flex items-center gap-1.5 sm:gap-2 border-b border-slate-200 dark:border-slate-800 pb-2 overflow-x-auto no-scrollbar -mx-2 px-2 sm:mx-0 sm:px-0">
         <button
           onClick={() => {
             setStudentView('all');

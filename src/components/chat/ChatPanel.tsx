@@ -8,7 +8,8 @@ import {
   User as UserIcon,
   CheckCheck,
   Smile,
-  Paperclip
+  Paperclip,
+  ArrowLeft
 } from 'lucide-react';
 
 export const ChatPanel: React.FC = () => {
@@ -20,6 +21,7 @@ export const ChatPanel: React.FC = () => {
   });
   const [messageText, setMessageText] = useState('');
   const [contactSearch, setContactSearch] = useState('');
+  const [isMobileContactListOpen, setIsMobileContactListOpen] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -68,7 +70,7 @@ export const ChatPanel: React.FC = () => {
     <div className="h-[calc(100vh-140px)] min-h-[500px] flex flex-col rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden animate-in fade-in duration-150">
       <div className="flex-1 flex overflow-hidden">
         {/* Contact List Column */}
-        <div className="w-72 sm:w-80 border-r border-slate-200 dark:border-slate-800 flex flex-col bg-slate-50/50 dark:bg-slate-900/50">
+        <div className={`${selectedContact && !isMobileContactListOpen ? 'hidden md:flex' : 'flex'} w-full md:w-72 sm:md:w-80 border-r border-slate-200 dark:border-slate-800 flex-col bg-slate-50/50 dark:bg-slate-900/50`}>
           {/* Header & Search */}
           <div className="p-3.5 border-b border-slate-200 dark:border-slate-800 space-y-2.5">
             <div className="flex items-center justify-between">
@@ -108,7 +110,10 @@ export const ChatPanel: React.FC = () => {
               return (
                 <div
                   key={contact.id}
-                  onClick={() => setSelectedContactId(contact.id)}
+                  onClick={() => {
+                    setSelectedContactId(contact.id);
+                    setIsMobileContactListOpen(false);
+                  }}
                   className={`p-3 flex items-center gap-3 cursor-pointer transition-colors ${
                     isSelected
                       ? 'bg-indigo-50/80 dark:bg-indigo-950/40 border-l-2 border-indigo-600'
@@ -151,19 +156,28 @@ export const ChatPanel: React.FC = () => {
 
         {/* Chat Messages Column */}
         {selectedContact ? (
-          <div className="flex-1 flex flex-col bg-white dark:bg-slate-900">
+          <div className={`${isMobileContactListOpen ? 'hidden md:flex' : 'flex'} flex-1 flex-col bg-white dark:bg-slate-900`}>
             {/* Conversation Header */}
-            <div className="p-3.5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900">
-              <div className="flex items-center gap-3">
+            <div className="p-3 sm:p-3.5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900">
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                <button
+                  type="button"
+                  onClick={() => setIsMobileContactListOpen(true)}
+                  className="md:hidden p-1.5 -ml-1 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
+                  title="Ver contactos"
+                  aria-label="Ver lista de contactos"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </button>
                 <img
                   src={selectedContact.avatar}
                   alt={selectedContact.name}
                   referrerPolicy="no-referrer"
-                  className="w-9 h-9 rounded-full object-cover"
+                  className="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover shrink-0"
                 />
-                <div>
+                <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-xs text-slate-900 dark:text-white">
+                    <h3 className="font-bold text-xs text-slate-900 dark:text-white truncate">
                       {selectedContact.name}
                     </h3>
                     <span

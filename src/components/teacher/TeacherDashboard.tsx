@@ -888,7 +888,7 @@ export const TeacherDashboard: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={async () => {
               setIsSyncing(true);
@@ -950,71 +950,71 @@ export const TeacherDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* KPI Cards for Teacher */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
-          <div className="flex items-center justify-between text-xs font-medium text-slate-500">
-            <span>Mis Cursos Activos</span>
-            <div className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600">
-              <BookOpen className="w-4 h-4" />
+      {/* KPI Cards for Teacher - Responsive 2x2 on mobile, 4 on desktop */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+        <div className="p-3 sm:p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
+          <div className="flex items-center justify-between text-[11px] sm:text-xs font-medium text-slate-500">
+            <span className="truncate">Mis Cursos Activos</span>
+            <div className="p-1.5 sm:p-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 shrink-0">
+              <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
-          <div className="mt-3 text-2xl font-bold text-slate-900 dark:text-white font-mono tabular-nums">
+          <div className="mt-2 sm:mt-3 text-xl sm:text-2xl font-bold text-slate-900 dark:text-white font-mono tabular-nums">
             {myCourses.length}
           </div>
-          <div className="mt-1 text-[11px] text-slate-400">
-            Cursos creados por ti
+          <div className="mt-0.5 sm:mt-1 text-[10px] sm:text-[11px] text-slate-400 truncate">
+            Cursos creados
           </div>
         </div>
 
-        <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
-          <div className="flex items-center justify-between text-xs font-medium text-slate-500">
-            <span>Alumnos Matriculados</span>
-            <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600">
-              <Users className="w-4 h-4" />
+        <div className="p-3 sm:p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
+          <div className="flex items-center justify-between text-[11px] sm:text-xs font-medium text-slate-500">
+            <span className="truncate">Alumnos Matriculados</span>
+            <div className="p-1.5 sm:p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 shrink-0">
+              <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
-          <div className="mt-3 text-2xl font-bold text-slate-900 dark:text-white font-mono tabular-nums">
+          <div className="mt-2 sm:mt-3 text-xl sm:text-2xl font-bold text-slate-900 dark:text-white font-mono tabular-nums">
             {myCourses.reduce((sum, c) => sum + c.enrolledStudents.length, 0)}
           </div>
-          <div className="mt-1 text-[11px] text-slate-400">
-            Matriculados bajo tu gestión
+          <div className="mt-0.5 sm:mt-1 text-[10px] sm:text-[11px] text-slate-400 truncate">
+            Bajo tu gestión
           </div>
         </div>
 
-        <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
-          <div className="flex items-center justify-between text-xs font-medium text-slate-500">
-            <span>Entregas Pendientes</span>
-            <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600">
-              <Clock className="w-4 h-4" />
+        <div className="p-3 sm:p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
+          <div className="flex items-center justify-between text-[11px] sm:text-xs font-medium text-slate-500">
+            <span className="truncate">Entregas Pendientes</span>
+            <div className="p-1.5 sm:p-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 shrink-0">
+              <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
-          <div className="mt-3 text-2xl font-bold text-amber-600 dark:text-amber-400 font-mono tabular-nums">
+          <div className="mt-2 sm:mt-3 text-xl sm:text-2xl font-bold text-amber-600 dark:text-amber-400 font-mono tabular-nums">
             {pendingSubmissions.length}
           </div>
-          <div className="mt-1 text-[11px] text-slate-400">
-            Esperando tu revisión y nota
+          <div className="mt-0.5 sm:mt-1 text-[10px] sm:text-[11px] text-slate-400 truncate">
+            Por calificar
           </div>
         </div>
 
-        <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
-          <div className="flex items-center justify-between text-xs font-medium text-slate-500">
-            <span>Tareas Calificadas</span>
-            <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600">
-              <CheckCircle className="w-4 h-4" />
+        <div className="p-3 sm:p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
+          <div className="flex items-center justify-between text-[11px] sm:text-xs font-medium text-slate-500">
+            <span className="truncate">Tareas Calificadas</span>
+            <div className="p-1.5 sm:p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 shrink-0">
+              <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
-          <div className="mt-3 text-2xl font-bold text-slate-900 dark:text-white font-mono tabular-nums">
+          <div className="mt-2 sm:mt-3 text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400 font-mono tabular-nums">
             {gradedSubmissions.length}
           </div>
-          <div className="mt-1 text-[11px] text-slate-400">
-            Con retroalimentación enviada
+          <div className="mt-0.5 sm:mt-1 text-[10px] sm:text-[11px] text-slate-400 truncate">
+            Con nota enviada
           </div>
         </div>
       </div>
 
       {/* Internal Navigation Tabs for Teacher */}
-      <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+      <div className="flex items-center gap-1.5 sm:gap-2 border-b border-slate-200 dark:border-slate-800 pb-2 overflow-x-auto no-scrollbar -mx-2 px-2 sm:mx-0 sm:px-0">
         <button
           onClick={() => {
             setTeacherView('courses');

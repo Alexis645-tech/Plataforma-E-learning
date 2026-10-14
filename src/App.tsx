@@ -49,7 +49,7 @@ const AppContent: React.FC = () => {
 
   return (
     <div
-      className={`min-h-screen flex flex-col transition-colors ${
+      className={`min-h-screen flex flex-col w-full max-w-full overflow-x-hidden transition-colors ${
         theme === 'dark' ? 'dark bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'
       }`}
       data-theme={theme}
@@ -59,14 +59,14 @@ const AppContent: React.FC = () => {
         isSidebarOpen={isSidebarOpen}
       />
 
-      <div className="flex-1 flex">
+      <div className="flex-1 flex w-full max-w-full min-w-0 overflow-x-hidden">
         <Sidebar
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
         />
 
-        <main className="flex-1 lg:pl-64 transition-all duration-200">
-          <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 min-h-[calc(100vh-64px)]">
+        <main className="flex-1 min-w-0 w-full max-w-full lg:pl-64 transition-all duration-200">
+          <div className="w-full max-w-7xl mx-auto p-3 sm:p-6 lg:p-8 min-h-[calc(100vh-64px)]">
             {renderActiveView()}
           </div>
         </main>
