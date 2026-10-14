@@ -16,6 +16,7 @@ import {
   FileCheck,
   ShieldCheck,
   GitBranch,
+  AlertCircle,
   X
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
