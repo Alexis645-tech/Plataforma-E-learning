@@ -36,6 +36,7 @@ import {
 import { MediaRenderer } from '../common/MediaRenderer';
 import { resolveMediaEmbedInfo } from '../../utils/mediaUtils';
 import { RichTextEditor } from '../common/RichTextEditor';
+import { QuizPlayer } from '../student/QuizPlayer';
 
 export const TeacherDashboard: React.FC = () => {
   const {
@@ -137,9 +138,11 @@ export const TeacherDashboard: React.FC = () => {
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
   const [studentSearchQuery, setStudentSearchQuery] = useState('');
 
-  // Lesson Preview State for Teacher
+  // Preview States for Teacher (Lesson, Assignment, Quiz)
   const [previewingLesson, setPreviewingLesson] = useState<Lesson | null>(null);
   const [previewResourceIdx, setPreviewResourceIdx] = useState<number>(0);
+  const [previewingAssignment, setPreviewingAssignment] = useState<Assignment | null>(null);
+  const [previewingQuiz, setPreviewingQuiz] = useState<Quiz | null>(null);
 
   // Course Form States
   const [courseTitle, setCourseTitle] = useState('');
@@ -1701,6 +1704,16 @@ export const TeacherDashboard: React.FC = () => {
                           </div>
 
                           <div className="flex items-center gap-1.5 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => setPreviewingAssignment(asg)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 border border-emerald-200/60 dark:border-emerald-900/60 rounded-lg transition-colors shadow-2xs"
+                              title="Vista previa de la tarea (como la ve el estudiante)"
+                            >
+                              <Eye className="w-3 h-3 text-emerald-600" />
+                              <span>Vista Previa</span>
+                            </button>
+
                             {canManageAsg ? (
                               <>
                                 <button
@@ -1837,6 +1850,16 @@ export const TeacherDashboard: React.FC = () => {
                           </span>
 
                           <div className="flex items-center gap-1.5 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => setPreviewingQuiz(quiz)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 border border-emerald-200/60 dark:border-emerald-900/60 rounded-lg transition-colors shadow-2xs"
+                              title="Vista previa del examen (como lo responderá el estudiante)"
+                            >
+                              <Eye className="w-3 h-3 text-emerald-600" />
+                              <span>Vista Previa</span>
+                            </button>
+
                             {canManageQuiz ? (
                               <>
                                 <button
@@ -3993,7 +4016,18 @@ export const TeacherDashboard: React.FC = () => {
                               </span>
                               <span className="font-semibold text-slate-900 dark:text-white truncate">{asg.title}</span>
                             </div>
-                            <span className="text-[10px] text-slate-400 shrink-0 font-mono">Máx: {asg.maxScore} pts</span>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="text-[10px] text-slate-400 font-mono">Máx: {asg.maxScore} pts</span>
+                              <button
+                                type="button"
+                                onClick={() => setPreviewingAssignment(asg)}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400 text-[10px] font-semibold transition-colors"
+                                title="Ver vista previa de esta tarea"
+                              >
+                                <Eye className="w-3 h-3" />
+                                <span>Ver</span>
+                              </button>
+                            </div>
                           </div>
                         ))}
                         {linkedQuizzes.map((quiz) => (
@@ -4004,7 +4038,18 @@ export const TeacherDashboard: React.FC = () => {
                               </span>
                               <span className="font-semibold text-slate-900 dark:text-white truncate">{quiz.title}</span>
                             </div>
-                            <span className="text-[10px] text-slate-400 shrink-0 font-mono">{quiz.questions.length} preguntas · {quiz.timeLimitMinutes} min</span>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="text-[10px] text-slate-400 font-mono">{quiz.questions.length} preguntas · {quiz.timeLimitMinutes} min</span>
+                              <button
+                                type="button"
+                                onClick={() => setPreviewingQuiz(quiz)}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-600 dark:text-emerald-400 text-[10px] font-semibold transition-colors"
+                                title="Probar examen en vista previa"
+                              >
+                                <Eye className="w-3 h-3" />
+                                <span>Probar</span>
+                              </button>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -4027,6 +4072,204 @@ export const TeacherDashboard: React.FC = () => {
                 Cerrar Vista Previa
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Assignment Preview for Teacher */}
+      {previewingAssignment && (() => {
+        const asgCourse = courses.find((c) => c.id === previewingAssignment.courseId);
+        const asgLesson = modules
+          .flatMap((m) => m.lessons)
+          .find((l) => l.id === previewingAssignment.lessonId || l.assignmentIds?.includes(previewingAssignment.id));
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs">
+            <div className="w-full max-w-2xl max-h-[92vh] flex flex-col bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600">
+                    <FileText className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase font-bold text-indigo-600 dark:text-indigo-400">
+                      Vista Previa de Tarea · Modo Estudiante
+                    </div>
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                      {previewingAssignment.title}
+                    </h3>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPreviewingAssignment(null)}
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="flex-1 overflow-y-auto p-5 space-y-4 text-xs">
+                {/* Informative Banner */}
+                <div className="p-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-900/50 flex items-center justify-between gap-3 text-indigo-900 dark:text-indigo-200">
+                  <span className="flex items-center gap-2 font-medium">
+                    <Sparkles className="w-4 h-4 text-indigo-600 shrink-0" />
+                    <span>Esta es la visualización exacta que verá el alumno al consultar las instrucciones y subir su entrega.</span>
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-indigo-600 text-white text-[10px] font-bold shrink-0 font-mono">
+                    Puntaje Máximo: {previewingAssignment.maxScore} pts
+                  </span>
+                </div>
+
+                {/* Course and Lesson Breadcrumbs */}
+                <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+                  <span className="font-semibold text-slate-700 dark:text-slate-300">
+                    {asgCourse?.title || 'Curso asignado'}
+                  </span>
+                  {asgLesson && (
+                    <>
+                      <span>·</span>
+                      <span className="inline-flex items-center gap-1 text-indigo-600 dark:text-indigo-400 font-medium">
+                        <BookOpen className="w-3 h-3" />
+                        Clase: {asgLesson.title}
+                      </span>
+                    </>
+                  )}
+                  <span>·</span>
+                  <span className="text-slate-400 flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    Fecha límite: {new Date(previewingAssignment.dueDate).toLocaleDateString()} a las {new Date(previewingAssignment.dueDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+
+                {/* Assignment Consigna / Description */}
+                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 space-y-2">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Consigna e Instrucciones
+                  </div>
+                  <p className="text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
+                    {previewingAssignment.description}
+                  </p>
+                </div>
+
+                {/* Attached Materials */}
+                {previewingAssignment.materials && previewingAssignment.materials.length > 0 && (
+                  <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2.5">
+                    <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                      <Paperclip className="w-3.5 h-3.5 text-indigo-500" />
+                      Materiales y Recursos de Apoyo ({previewingAssignment.materials.length})
+                    </div>
+                    <div className="space-y-1.5">
+                      {previewingAssignment.materials.map((mat) => (
+                        <a
+                          key={mat.id}
+                          href={mat.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-2 rounded-lg bg-slate-50 hover:bg-indigo-50 dark:bg-slate-800 dark:hover:bg-slate-700/60 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-2 text-indigo-600 dark:text-indigo-400 transition-colors"
+                        >
+                          <span className="font-medium text-slate-800 dark:text-slate-200 truncate">{mat.title}</span>
+                          <span className="inline-flex items-center gap-1 text-[10px] text-indigo-600 dark:text-indigo-400 shrink-0 font-medium">
+                            Abrir recurso <ExternalLink className="w-3 h-3" />
+                          </span>
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Rubric View */}
+                {previewingAssignment.rubric && previewingAssignment.rubric.length > 0 && (
+                  <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2.5">
+                    <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                      <Award className="w-3.5 h-3.5 text-amber-500" />
+                      Rúbrica Oficial de Calificación ({previewingAssignment.rubric.length} criterios)
+                    </div>
+                    <div className="space-y-2">
+                      {previewingAssignment.rubric.map((crit) => (
+                        <div
+                          key={crit.id}
+                          className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/60 flex items-start justify-between gap-3"
+                        >
+                          <div>
+                            <div className="font-semibold text-slate-900 dark:text-white">{crit.title}</div>
+                            <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{crit.description}</div>
+                          </div>
+                          <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400 shrink-0">
+                            {crit.maxPoints} pts
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Simulated Student Submission Form */}
+                <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-indigo-200/80 dark:border-indigo-900/60 shadow-xs space-y-3">
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+                    <span className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                      <FileCheck className="w-4 h-4 text-emerald-600" />
+                      Formulario de Entrega del Estudiante (Simulación)
+                    </span>
+                    <span className="text-[10px] text-slate-400 italic">Solo lectura interactiva</span>
+                  </div>
+
+                  <div className="space-y-2.5 opacity-90">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                        Descripción del Trabajo Resuelto
+                      </label>
+                      <textarea
+                        rows={2}
+                        disabled
+                        placeholder="El alumno describirá aquí su solución, decisiones de código y metodología empleada..."
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100/70 dark:bg-slate-800/70 text-slate-500 cursor-not-allowed"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                        Enlace a Repositorio o Demostración Online
+                      </label>
+                      <input
+                        type="url"
+                        disabled
+                        placeholder="https://github.com/alumno/proyecto-tarea..."
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100/70 dark:bg-slate-800/70 text-slate-500 cursor-not-allowed"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <span className="text-[11px] text-slate-400">
+                  Cierra la vista previa para volver al panel docente
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setPreviewingAssignment(null)}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition-colors shadow-2xs"
+                >
+                  Cerrar Vista Previa
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* MODAL: Quiz Preview for Teacher */}
+      {previewingQuiz && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs overflow-y-auto">
+          <div className="w-full max-w-3xl my-8">
+            <QuizPlayer
+              quiz={previewingQuiz}
+              onBack={() => setPreviewingQuiz(null)}
+              isPreview={true}
+            />
           </div>
         </div>
       )}

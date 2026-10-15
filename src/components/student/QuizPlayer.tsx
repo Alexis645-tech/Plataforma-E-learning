@@ -17,9 +17,10 @@ import {
 interface QuizPlayerProps {
   quiz: Quiz;
   onBack: () => void;
+  isPreview?: boolean;
 }
 
-export const QuizPlayer: React.FC<QuizPlayerProps> = ({ quiz, onBack }) => {
+export const QuizPlayer: React.FC<QuizPlayerProps> = ({ quiz, onBack, isPreview = false }) => {
   const { currentUser, submitQuizAttempt, quizAttempts } = useApp();
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -61,18 +62,19 @@ export const QuizPlayer: React.FC<QuizPlayerProps> = ({ quiz, onBack }) => {
   };
 
   const handleSubmitQuiz = () => {
-    const { earnedScore, percentage, passed } = calculateResults();
-
-    submitQuizAttempt({
-      quizId: quiz.id,
-      courseId: quiz.courseId,
-      studentId: currentUser.id,
-      answers: selectedAnswers,
-      score: earnedScore,
-      maxScore,
-      percentage,
-      passed
-    });
+    if (!isPreview) {
+      const { earnedScore, percentage, passed } = calculateResults();
+      submitQuizAttempt({
+        quizId: quiz.id,
+        courseId: quiz.courseId,
+        studentId: currentUser.id,
+        answers: selectedAnswers,
+        score: earnedScore,
+        maxScore,
+        percentage,
+        passed
+      });
+    }
 
     setIsSubmitted(true);
   };
@@ -81,6 +83,21 @@ export const QuizPlayer: React.FC<QuizPlayerProps> = ({ quiz, onBack }) => {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in duration-150">
+      {isPreview && (
+        <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/60 flex items-center justify-between text-xs text-emerald-900 dark:text-emerald-200">
+          <div className="flex items-center gap-2 font-semibold">
+            <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>Modo Vista Previa de Docente: Estás probando este examen tal como lo responderá el estudiante. Las respuestas no alterarán las notas oficiales.</span>
+          </div>
+          <button
+            onClick={onBack}
+            className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shrink-0"
+          >
+            Cerrar Vista Previa
+          </button>
+        </div>
+      )}
+
       {/* Top Header */}
       <div className="flex items-center justify-between p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs">
         <button
@@ -88,7 +105,7 @@ export const QuizPlayer: React.FC<QuizPlayerProps> = ({ quiz, onBack }) => {
           className="flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-indigo-600 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          Volver
+          {isPreview ? 'Volver al Panel Docente' : 'Volver'}
         </button>
 
         <div className="flex items-center gap-2.5 text-xs text-slate-500 font-mono">
