@@ -156,6 +156,9 @@ export interface AppNotification {
   read: boolean;
   timestamp: string;
   linkAction?: string;
+  senderId?: string;
+  relatedId?: string;
+  targetId?: string;
 }
 
 export interface StudentProgress {

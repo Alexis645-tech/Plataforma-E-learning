@@ -84,6 +84,8 @@ interface AppContextType {
   setSelectedLessonId: (id: string | null) => void;
   selectedQuizId: string | null;
   setSelectedQuizId: (id: string | null) => void;
+  selectedChatContactId: string | null;
+  setSelectedChatContactId: (id: string | null) => void;
   resetToDefaultData: () => void;
   isAuthenticated: boolean;
   login: (email: string, password?: string) => Promise<{ success: boolean; error?: string }>;
@@ -205,6 +207,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null);
+  const [selectedChatContactId, setSelectedChatContactId] = useState<string | null>(null);
 
   const [dbStatus, setDbStatus] = useState<DbStatusResponse | null>(null);
   const isMongoConnected = Boolean(dbStatus?.isConnected);
@@ -434,6 +437,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setSelectedCourseId(null);
     setSelectedLessonId(null);
     setSelectedQuizId(null);
+    setSelectedChatContactId(null);
     await reloadFromBackend();
     return { success: true };
   };
@@ -445,6 +449,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setSelectedCourseId(null);
     setSelectedLessonId(null);
     setSelectedQuizId(null);
+    setSelectedChatContactId(null);
     await reloadFromBackend();
   };
 
@@ -454,6 +459,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setSelectedCourseId(null);
     setSelectedLessonId(null);
     setSelectedQuizId(null);
+    setSelectedChatContactId(null);
   };
 
   const toggleTheme = () => {
@@ -473,6 +479,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setSelectedCourseId(null);
       setSelectedLessonId(null);
       setSelectedQuizId(null);
+      setSelectedChatContactId(null);
       await reloadFromBackend();
     }
   };
@@ -1273,7 +1280,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       type: 'chat',
       read: false,
       timestamp: new Date().toISOString(),
-      linkAction: 'chat'
+      linkAction: 'chat',
+      senderId: currentUser.id,
+      relatedId: currentUser.id
     };
     setNotifications((prev) => [notif, ...prev]);
     apiService.saveNotification(notif);
@@ -1470,6 +1479,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setSelectedLessonId,
         selectedQuizId,
         setSelectedQuizId,
+        selectedChatContactId,
+        setSelectedChatContactId,
         resetToDefaultData,
         isAuthenticated,
         login,

@@ -13,19 +13,31 @@ import {
 } from 'lucide-react';
 
 export const ChatPanel: React.FC = () => {
-  const { currentUser, users, chatMessages, sendChatMessage } = useApp();
+  const { currentUser, users, chatMessages, sendChatMessage, selectedChatContactId, setSelectedChatContactId } = useApp();
+
+  const contacts = users.filter((u) => u.id !== currentUser.id);
 
   const [selectedContactId, setSelectedContactId] = useState<string>(() => {
-    const otherUser = users.find((u) => u.id !== currentUser.id);
+    if (selectedChatContactId && contacts.some((c) => c.id === selectedChatContactId)) {
+      return selectedChatContactId;
+    }
+    const otherUser = contacts[0];
     return otherUser ? otherUser.id : '';
   });
   const [messageText, setMessageText] = useState('');
   const [contactSearch, setContactSearch] = useState('');
   const [isMobileContactListOpen, setIsMobileContactListOpen] = useState(false);
 
+  // Sync selected contact if selectedChatContactId changes from navigation (e.g. notifications)
+  useEffect(() => {
+    if (selectedChatContactId && contacts.some((c) => c.id === selectedChatContactId)) {
+      setSelectedContactId(selectedChatContactId);
+      setIsMobileContactListOpen(false);
+    }
+  }, [selectedChatContactId, contacts]);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const contacts = users.filter((u) => u.id !== currentUser.id);
   const filteredContacts = contacts.filter((c) =>
     c.name.toLowerCase().includes(contactSearch.toLowerCase()) ||
     c.role.toLowerCase().includes(contactSearch.toLowerCase())
@@ -112,6 +124,7 @@ export const ChatPanel: React.FC = () => {
                   key={contact.id}
                   onClick={() => {
                     setSelectedContactId(contact.id);
+                    setSelectedChatContactId(contact.id);
                     setIsMobileContactListOpen(false);
                   }}
                   className={`p-3 flex items-center gap-3 cursor-pointer transition-colors ${

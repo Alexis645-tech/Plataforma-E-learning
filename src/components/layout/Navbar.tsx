@@ -30,12 +30,14 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, isSidebarOpen }) => {
   const {
     currentUser,
+    users,
     theme,
     toggleTheme,
     notifications,
     markNotificationAsRead,
     markAllNotificationsAsRead,
     setActiveTab,
+    setSelectedChatContactId,
     logout
   } = useApp();
 
@@ -116,6 +118,25 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, isSidebarOpen }
     } else if (currentUser.role === 'student') {
       if (targetTab === 'grading') {
         targetTab = 'grades';
+      }
+    }
+
+    // Direct redirection to the conversation contact for chat notifications
+    if (targetTab === 'chat' || n.type === 'chat') {
+      let contactId = n.senderId || n.relatedId || n.targetId;
+      if (!contactId && n.title) {
+        // Fallback: match by sender name in title (e.g., "Mensaje de Kevin Prado")
+        const prefixMatch = n.title.match(/Mensaje de (.+)/i);
+        if (prefixMatch && prefixMatch[1]) {
+          const senderName = prefixMatch[1].trim().toLowerCase();
+          const found = users.find((u) => u.name.toLowerCase() === senderName || u.name.toLowerCase().includes(senderName));
+          if (found) {
+            contactId = found.id;
+          }
+        }
+      }
+      if (contactId) {
+        setSelectedChatContactId(contactId);
       }
     }
 

@@ -549,7 +549,9 @@ export const INITIAL_NOTIFICATIONS: AppNotification[] = [
     type: 'chat',
     read: true,
     timestamp: '2026-10-08T15:00:00',
-    linkAction: 'chat'
+    linkAction: 'chat',
+    senderId: 'usr_teacher_1',
+    relatedId: 'usr_teacher_1'
   },
   {
     id: 'notif_4',
