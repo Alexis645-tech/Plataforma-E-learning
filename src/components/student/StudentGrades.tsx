@@ -224,7 +224,11 @@ export const StudentGrades: React.FC = () => {
         </h2>
 
         {(() => {
-          const enrolledCourses = courses.filter((c) => (currentUser.coursesEnrolled || []).includes(c.id));
+          const enrolledCourses = courses.filter(
+            (c) =>
+              (currentUser.coursesEnrolled || []).includes(c.id) ||
+              (c.enrolledStudents || []).includes(currentUser.id)
+          );
           const completedCourses = enrolledCourses.filter((c) => getCourseProgressPercentage(c.id) === 100);
 
           if (completedCourses.length === 0) {

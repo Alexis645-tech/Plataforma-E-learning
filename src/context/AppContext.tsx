@@ -358,7 +358,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem(STORAGE_KEYS.IS_AUTHENTICATED, JSON.stringify(isAuthenticated));
   }, [isAuthenticated]);
 
-  const currentUser = users.find((u) => u.id === currentUserId) || users[0];
+  // Bidirectionally synchronize user enrollment: ensure coursesEnrolled includes
+  // any course where the user's ID appears in course.enrolledStudents
+  const baseCurrentUser = users.find((u) => u.id === currentUserId) || users[0];
+  const currentUser = React.useMemo(() => {
+    if (!baseCurrentUser) return users[0];
+    const coursesEnrolledViaCourseList = courses
+      .filter((c) => (c.enrolledStudents || []).includes(baseCurrentUser.id))
+      .map((c) => c.id);
+    const combinedCourseIds = Array.from(
+      new Set([...(baseCurrentUser.coursesEnrolled || []), ...coursesEnrolledViaCourseList])
+    );
+    return {
+      ...baseCurrentUser,
+      coursesEnrolled: combinedCourseIds,
+    };
+  }, [baseCurrentUser, courses]);
 
   const login = async (email: string, password?: string): Promise<{ success: boolean; error?: string }> => {
     const trimmed = email.trim().toLowerCase();
@@ -661,38 +676,49 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const enrollStudentInCourse = (courseId: string, studentId: string) => {
     const targetCourse = courses.find((c) => c.id === courseId);
-    let updatedCourseList: string[] = [];
+    let targetEnrolledStudents: string[] | null = null;
     setCourses((prev) =>
       prev.map((c) => {
         if (c.id === courseId) {
           const currentList = c.enrolledStudents || [];
           if (!currentList.includes(studentId)) {
-            updatedCourseList = [...currentList, studentId];
-            return { ...c, enrolledStudents: updatedCourseList };
+            targetEnrolledStudents = [...currentList, studentId];
+            return { ...c, enrolledStudents: targetEnrolledStudents };
           }
         }
         return c;
       })
     );
-    if (updatedCourseList.length > 0) {
-      apiService.updateCourse(courseId, { enrolledStudents: updatedCourseList });
-    }
 
-    let updatedUserList: string[] = [];
+    let targetCoursesEnrolled: string[] | null = null;
     setUsers((prev) =>
       prev.map((u) => {
         if (u.id === studentId) {
           const currentEnrolled = u.coursesEnrolled || [];
           if (!currentEnrolled.includes(courseId)) {
-            updatedUserList = [...currentEnrolled, courseId];
-            return { ...u, coursesEnrolled: updatedUserList };
+            targetCoursesEnrolled = [...currentEnrolled, courseId];
+            return { ...u, coursesEnrolled: targetCoursesEnrolled };
           }
         }
         return u;
       })
     );
-    if (updatedUserList.length > 0) {
-      apiService.updateUser(studentId, { coursesEnrolled: updatedUserList });
+
+    // Persist course enrollment to backend
+    if (targetCourse) {
+      const updatedList = Array.from(new Set([...(targetCourse.enrolledStudents || []), studentId]));
+      apiService.updateCourse(courseId, { enrolledStudents: updatedList });
+    } else if (targetEnrolledStudents) {
+      apiService.updateCourse(courseId, { enrolledStudents: targetEnrolledStudents });
+    }
+
+    // Persist user enrollment to backend
+    const targetStudent = users.find((u) => u.id === studentId);
+    if (targetStudent) {
+      const updatedUserEnrolled = Array.from(new Set([...(targetStudent.coursesEnrolled || []), courseId]));
+      apiService.updateUser(studentId, { coursesEnrolled: updatedUserEnrolled });
+    } else if (targetCoursesEnrolled) {
+      apiService.updateUser(studentId, { coursesEnrolled: targetCoursesEnrolled });
     }
 
     if (targetCourse) {
@@ -726,9 +752,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return c;
       })
     );
-    if (updatedCourseList) {
-      apiService.updateCourse(courseId, { enrolledStudents: updatedCourseList });
-    }
 
     let updatedUserList: string[] | null = null;
     setUsers((prev) =>
@@ -743,9 +766,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return u;
       })
     );
-    if (updatedUserList) {
-      apiService.updateUser(studentId, { coursesEnrolled: updatedUserList });
-    }
+
+    // Persist changes to backend
+    const filteredCourseList = (targetCourse?.enrolledStudents || []).filter((id) => id !== studentId);
+    apiService.updateCourse(courseId, { enrolledStudents: filteredCourseList });
+
+    const targetStudent = users.find((u) => u.id === studentId);
+    const filteredUserList = (targetStudent?.coursesEnrolled || []).filter((id) => id !== courseId);
+    apiService.updateUser(studentId, { coursesEnrolled: filteredUserList });
 
     setProgress((prev) => prev.filter((p) => !(p.userId === studentId && p.courseId === courseId)));
 

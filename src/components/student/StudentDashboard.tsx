@@ -71,8 +71,13 @@ export const StudentDashboard: React.FC = () => {
   const [submissionUrl, setSubmissionUrl] = useState('');
   const [submissionFileName, setSubmissionFileName] = useState('');
 
-  // Enrolled courses
-  const enrolledCourseIds = currentUser.coursesEnrolled || [];
+  // Enrolled courses: synchronized bidirectionally between student profile and course enrollment lists
+  const enrolledCourseIds = Array.from(
+    new Set([
+      ...(currentUser.coursesEnrolled || []),
+      ...courses.filter((c) => (c.enrolledStudents || []).includes(currentUser.id)).map((c) => c.id)
+    ])
+  );
   const myCourses = courses.filter((c) => enrolledCourseIds.includes(c.id));
   const otherCourses = courses.filter((c) => !enrolledCourseIds.includes(c.id));
 
