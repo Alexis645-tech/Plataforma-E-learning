@@ -19,12 +19,25 @@ import {
 } from 'lucide-react';
 
 const AVATAR_PRESETS = [
-  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80'
+  // Femeninos
+  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=75',
+  'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=120&auto=format&fit=crop&q=75',
+  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120&auto=format&fit=crop&q=75',
+  'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&auto=format&fit=crop&q=75',
+  'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=120&auto=format&fit=crop&q=75',
+  'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=120&auto=format&fit=crop&q=75',
+  'https://images.unsplash.com/photo-1567532939604-b6b5b0db2604?w=120&auto=format&fit=crop&q=75',
+  'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=120&auto=format&fit=crop&q=75',
+
+  // Masculinos
+  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&auto=format&fit=crop&q=75',
+  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&auto=format&fit=crop&q=75',
+  'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=120&auto=format&fit=crop&q=75',
+  'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=120&auto=format&fit=crop&q=75',
+  'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=120&auto=format&fit=crop&q=75',
+  'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=120&auto=format&fit=crop&q=75',
+  'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=120&auto=format&fit=crop&q=75',
+  'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=120&auto=format&fit=crop&q=75'
 ];
 
 export const ProfileSettings: React.FC = () => {
@@ -99,23 +112,40 @@ export const ProfileSettings: React.FC = () => {
               />
             </div>
 
-            <div className="space-y-2 text-center sm:text-left">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Selecciona un avatar predefinido:
-              </span>
-              <div className="flex items-center gap-2.5 flex-wrap justify-center sm:justify-start">
+            <div className="space-y-2 text-center sm:text-left flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  Selecciona un avatar predefinido:
+                </span>
+                <span className="text-[10px] text-slate-400 font-medium">
+                  {AVATAR_PRESETS.length} disponibles
+                </span>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap justify-center sm:justify-start max-h-36 overflow-y-auto p-1.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
                 {AVATAR_PRESETS.map((avUrl, idx) => (
                   <button
                     key={idx}
                     type="button"
                     onClick={() => setSelectedAvatar(avUrl)}
-                    className={`w-9 h-9 rounded-full overflow-hidden border-2 transition-all ${
+                    title={`Avatar ${idx + 1}`}
+                    className={`relative w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden border-2 transition-all group shrink-0 ${
                       selectedAvatar === avUrl
-                        ? 'border-indigo-600 ring-2 ring-indigo-500/50 scale-105'
-                        : 'border-transparent opacity-70 hover:opacity-100'
+                        ? 'border-indigo-600 ring-2 ring-indigo-500/50 scale-105 shadow-sm'
+                        : 'border-transparent opacity-75 hover:opacity-100 hover:scale-105'
                     }`}
                   >
-                    <img src={avUrl} alt={`Avatar ${idx + 1}`} className="w-full h-full object-cover" />
+                    <img
+                      src={avUrl}
+                      alt={`Avatar ${idx + 1}`}
+                      loading="lazy"
+                      referrerPolicy="no-referrer"
+                      className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                    />
+                    {selectedAvatar === avUrl && (
+                      <div className="absolute inset-0 bg-indigo-600/20 flex items-center justify-center">
+                        <Check className="w-3.5 h-3.5 text-white drop-shadow-md" />
+                      </div>
+                    )}
                   </button>
                 ))}
               </div>
