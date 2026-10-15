@@ -140,6 +140,18 @@ export interface QuizAttempt {
   passed: boolean;
 }
 
+export interface CertificateEligibilityResult {
+  eligible: boolean;
+  progressPct: number;
+  lessonsCompleted: boolean;
+  assignmentsPassed: boolean;
+  quizzesPassed: boolean;
+  pendingRequirements: string[];
+  totalAssignmentsCount: number;
+  totalQuizzesCount: number;
+  averageScore?: number;
+}
+
 export interface ChatMessage {
   id: string;
   senderId: string;

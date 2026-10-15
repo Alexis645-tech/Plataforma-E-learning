@@ -35,6 +35,7 @@ export const StudentDashboard: React.FC = () => {
     quizAttempts,
     createSubmission,
     getCourseProgressPercentage,
+    getCourseCertificateEligibility,
     activeTab,
     setActiveTab
   } = useApp();
@@ -399,29 +400,46 @@ export const StudentDashboard: React.FC = () => {
 
                     <div className="space-y-2 pt-1">
                       {progressPct === 100 ? (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => setCertificateCourse(course)}
-                            className="w-full py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 shadow-xs transition-colors"
-                          >
-                            <Award className="w-3.5 h-3.5" />
-                            Ver Certificado Oficial
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setActiveCourseToStudy(course)}
-                            className="w-full py-1.5 px-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-medium flex items-center justify-center gap-1.5 transition-colors"
-                          >
-                            <PlayCircle className="w-3.5 h-3.5" />
-                            Repasar Clases del Curso
-                          </button>
-                        </>
+                        (() => {
+                          const certEligibility = getCourseCertificateEligibility(course.id);
+                          return certEligibility.eligible ? (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => setCertificateCourse(course)}
+                                className="w-full py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+                              >
+                                <Award className="w-3.5 h-3.5" />
+                                Ver Certificado Oficial
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setActiveCourseToStudy(course)}
+                                className="w-full py-1.5 px-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                              >
+                                <PlayCircle className="w-3.5 h-3.5" />
+                                Repasar Clases del Curso
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => setActiveCourseToStudy(course)}
+                                className="w-full py-2 px-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+                                title="Faltan tareas o evaluaciones con nota mínima aprobatoria para desbloquear el diploma"
+                              >
+                                <PlayCircle className="w-3.5 h-3.5" />
+                                Clases 100% · Completar Tareas/Exámenes
+                              </button>
+                            </>
+                          );
+                        })()
                       ) : (
                         <button
                           type="button"
                           onClick={() => setActiveCourseToStudy(course)}
-                          className="w-full py-2 px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 shadow-xs transition-colors"
+                          className="w-full py-2 px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer"
                         >
                           <PlayCircle className="w-3.5 h-3.5" />
                           {progressPct > 0 ? 'Continuar Curso' : 'Iniciar Curso'}
@@ -849,6 +867,7 @@ export const StudentDashboard: React.FC = () => {
         <CertificateModal
           course={certificateCourse}
           student={currentUser}
+          score={getCourseCertificateEligibility(certificateCourse.id).averageScore}
           onClose={() => setCertificateCourse(null)}
         />
       )}

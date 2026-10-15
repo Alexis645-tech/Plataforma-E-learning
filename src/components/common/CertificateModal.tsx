@@ -5,10 +5,11 @@ import { Award, CheckCircle2, Download, Printer, X, Sparkles, ShieldCheck, Calen
 interface CertificateModalProps {
   course: Course;
   student: User;
+  score?: number;
   onClose: () => void;
 }
 
-export const CertificateModal: React.FC<CertificateModalProps> = ({ course, student, onClose }) => {
+export const CertificateModal: React.FC<CertificateModalProps> = ({ course, student, score, onClose }) => {
   const certRef = useRef<HTMLDivElement>(null);
   const issueDate = new Date().toLocaleDateString('es-ES', {
     day: 'numeric',
@@ -102,7 +103,9 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({ course, stud
                 <span>·</span>
                 <span>Área: <strong className="text-slate-700 dark:text-slate-300">{course.category}</strong></span>
                 <span>·</span>
-                <span>Calificación: <strong className="text-emerald-600">Completado 100%</strong></span>
+                <span>
+                  Calificación Final: <strong className="text-emerald-600">{typeof score === 'number' ? `${score}/100 (Aprobado)` : 'Aprobado 100%'}</strong>
+                </span>
               </div>
             </div>
 

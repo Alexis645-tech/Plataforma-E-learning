@@ -45,6 +45,7 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ course, onBack, init
     markLessonAsCompleted,
     recordCourseAccess,
     getCourseProgressPercentage,
+    getCourseCertificateEligibility,
     assignments,
     quizzes,
     submissions,
@@ -86,7 +87,9 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ course, onBack, init
 
   const completed = activeLesson ? isLessonCompleted(course.id, activeLesson.id) : false;
   const progressPct = getCourseProgressPercentage(course.id);
+  const certEligibility = getCourseCertificateEligibility(course.id);
   const [showCertificateModal, setShowCertificateModal] = useState<boolean>(false);
+  const [showRequirementsModal, setShowRequirementsModal] = useState<boolean>(false);
 
   useEffect(() => {
     recordCourseAccess(course.id);
@@ -661,31 +664,57 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ course, onBack, init
 
           {/* Bottom Classroom Navigation Bar */}
           <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 sm:p-5 shadow-xs space-y-4">
-            {/* Completion Banner if 100% */}
+            {/* Completion Banner if 100% and Eligible */}
             {progressPct === 100 && (
-              <div className="p-4 rounded-xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-indigo-500/10 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                    <Award className="w-5 h-5" />
+              certEligibility.eligible ? (
+                <div className="p-4 rounded-xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-indigo-500/10 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                      <Award className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                        ¡Felicitaciones! Has completado y aprobado el 100% del curso
+                      </h4>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                        Has aprobado todas las tareas y exámenes con nota sobresaliente. Tu certificado oficial está listo.
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                      ¡Felicitaciones! Has completado el 100% del curso
-                    </h4>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                      Todo tu progreso está guardado y tu certificado oficial de aprobación está listo.
-                    </p>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowCertificateModal(true)}
+                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-colors shrink-0"
+                  >
+                    <Award className="w-3.5 h-3.5" />
+                    Ver Certificado Oficial
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setShowCertificateModal(true)}
-                  className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-colors shrink-0"
-                >
-                  <Award className="w-3.5 h-3.5" />
-                  Ver Certificado Oficial
-                </button>
-              </div>
+              ) : (
+                <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                      <AlertCircle className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                        Clases completadas (100%) · Requisitos académicos pendientes
+                      </h4>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                        Para emitir tu certificado debes entregar todas las tareas y aprobar cada evaluación con una calificación mínima de 7/10 o 70%.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowRequirementsModal(true)}
+                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-xs transition-colors shrink-0"
+                  >
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    Ver Requisitos Pendientes
+                  </button>
+                </div>
+              )
             )}
 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
@@ -744,12 +773,22 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ course, onBack, init
                       if (!completed) {
                         markLessonAsCompleted(course.id, activeLesson.id);
                       }
-                      setShowCertificateModal(true);
+                      if (certEligibility.eligible) {
+                        setShowCertificateModal(true);
+                      } else {
+                        setShowRequirementsModal(true);
+                      }
                     }}
-                    className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-colors"
+                    className={`inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-white text-xs font-bold shadow-xs transition-colors ${
+                      certEligibility.eligible
+                        ? 'bg-emerald-600 hover:bg-emerald-700'
+                        : 'bg-amber-600 hover:bg-amber-700'
+                    }`}
                   >
                     <Award className="w-4 h-4" />
-                    <span>Finalizar Curso y Ver Diploma</span>
+                    <span>
+                      {certEligibility.eligible ? 'Finalizar Curso y Ver Diploma' : 'Finalizar Clases / Requisitos'}
+                    </span>
                   </button>
                 )}
               </div>
@@ -949,11 +988,98 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ course, onBack, init
         </div>
       )}
 
+      {/* Requirements Modal (When not eligible for certificate) */}
+      {showRequirementsModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-lg w-full border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-5 animate-in zoom-in-95 duration-200">
+            <div className="flex items-start justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-900/60 flex items-center justify-center shrink-0">
+                  <AlertCircle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                    Requisitos Académicos para Certificación
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    {course.title}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowRequirementsModal(false)}
+                className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-xs text-slate-600 dark:text-slate-300">
+                Para recibir tu <strong>Certificado Oficial con Validez Académica</strong>, la institución exige cumplir con el estándar de aprobación:
+              </p>
+
+              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 space-y-2 text-xs">
+                <div className="flex items-center justify-between font-semibold">
+                  <span className="text-slate-700 dark:text-slate-200">1. Clases completadas (100%):</span>
+                  <span className={certEligibility.lessonsCompleted ? 'text-emerald-600 font-bold' : 'text-amber-600 font-bold'}>
+                    {certEligibility.progressPct}% {certEligibility.lessonsCompleted ? '✓' : ''}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between font-semibold">
+                  <span className="text-slate-700 dark:text-slate-200">2. Tareas entregadas y aprobadas (≥ 7 / 70%):</span>
+                  <span className={certEligibility.assignmentsPassed ? 'text-emerald-600 font-bold' : 'text-amber-600 font-bold'}>
+                    {certEligibility.assignmentsPassed ? 'Aprobado ✓' : 'Pendiente'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between font-semibold">
+                  <span className="text-slate-700 dark:text-slate-200">3. Exámenes y evaluaciones aprobadas (≥ 70%):</span>
+                  <span className={certEligibility.quizzesPassed ? 'text-emerald-600 font-bold' : 'text-amber-600 font-bold'}>
+                    {certEligibility.quizzesPassed ? 'Aprobado ✓' : 'Pendiente'}
+                  </span>
+                </div>
+              </div>
+
+              {certEligibility.pendingRequirements.length > 0 && (
+                <div className="space-y-1.5 pt-1">
+                  <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
+                    Acciones pendientes requeridas:
+                  </span>
+                  <ul className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                    {certEligibility.pendingRequirements.map((req, idx) => (
+                      <li
+                        key={idx}
+                        className="text-xs flex items-start gap-2 p-2 rounded-lg bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900/40 text-amber-900 dark:text-amber-300"
+                      >
+                        <span className="mt-0.5 w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+                        <span className="leading-snug">{req}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setShowRequirementsModal(false)}
+                className="w-full py-2 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-colors shadow-xs"
+              >
+                Entendido, continuar estudiando
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Certificate Modal */}
       {showCertificateModal && (
         <CertificateModal
           course={course}
           student={currentUser}
+          score={certEligibility.averageScore}
           onClose={() => setShowCertificateModal(false)}
         />
       )}

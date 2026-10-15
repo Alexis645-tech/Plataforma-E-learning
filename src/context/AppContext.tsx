@@ -11,7 +11,8 @@ import {
   QuizAttempt,
   ChatMessage,
   AppNotification,
-  StudentProgress
+  StudentProgress,
+  CertificateEligibilityResult
 } from '../types';
 import {
   INITIAL_USERS,
@@ -73,6 +74,7 @@ interface AppContextType {
   markLessonAsCompleted: (courseId: string, lessonId: string) => void;
   isLessonCompleted: (courseId: string, lessonId: string) => boolean;
   getCourseProgressPercentage: (courseId: string) => number;
+  getCourseCertificateEligibility: (courseId: string, studentId?: string) => CertificateEligibilityResult;
   recordCourseAccess: (courseId: string) => void;
   theme: 'light' | 'dark';
   toggleTheme: () => void;
@@ -1578,6 +1580,101 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return Math.min(100, Math.round((completedCount / totalLessons) * 100));
   };
 
+  const getCourseCertificateEligibility = (courseId: string, studentId?: string): CertificateEligibilityResult => {
+    const targetUserId = studentId || currentUser.id;
+    const progressPct = getCourseProgressPercentage(courseId);
+    const lessonsCompleted = progressPct === 100;
+
+    const courseAssignments = assignments.filter((a) => a.courseId === courseId);
+    const courseQuizzes = quizzes.filter((q) => q.courseId === courseId);
+
+    const pendingRequirements: string[] = [];
+    const passingScores: number[] = [];
+
+    if (!lessonsCompleted) {
+      pendingRequirements.push(`Completar el 100% de las clases del curso (progreso actual: ${progressPct}%).`);
+    }
+
+    // Validar cada tarea del curso
+    let assignmentsPassed = true;
+    for (const asg of courseAssignments) {
+      const userSub = submissions.find(
+        (s) => s.assignmentId === asg.id && s.studentId === targetUserId
+      );
+
+      if (!userSub) {
+        assignmentsPassed = false;
+        pendingRequirements.push(`Entregar la tarea obligatoria: "${asg.title}".`);
+      } else if (userSub.status !== 'graded') {
+        assignmentsPassed = false;
+        pendingRequirements.push(`La tarea "${asg.title}" fue enviada pero aún está pendiente de revisión por el docente.`);
+      } else {
+        const score = typeof userSub.score === 'number' ? userSub.score : 0;
+        const max = asg.maxScore > 0 ? asg.maxScore : 100;
+        const normalized100 = (score / max) * 100;
+
+        if (normalized100 < 70) {
+          assignmentsPassed = false;
+          pendingRequirements.push(
+            `Aprobar la tarea "${asg.title}" con nota mínima de 7/10 o 70% (nota actual: ${score}/${max}).`
+          );
+        } else {
+          passingScores.push(normalized100);
+        }
+      }
+    }
+
+    // Validar cada examen del curso
+    let quizzesPassed = true;
+    for (const qz of courseQuizzes) {
+      const userAttempts = quizAttempts.filter(
+        (att) => att.quizId === qz.id && att.studentId === targetUserId
+      );
+
+      if (userAttempts.length === 0) {
+        quizzesPassed = false;
+        pendingRequirements.push(`Rendir la evaluación obligatoria: "${qz.title}".`);
+      } else {
+        // Encontrar el mejor intento del estudiante
+        const bestAttempt = userAttempts.reduce((maxAtt, curr) => {
+          const currPct = typeof curr.percentage === 'number' ? curr.percentage : (curr.score / (curr.maxScore || 100)) * 100;
+          const maxPct = typeof maxAtt.percentage === 'number' ? maxAtt.percentage : (maxAtt.score / (maxAtt.maxScore || 100)) * 100;
+          return currPct > maxPct ? curr : maxAtt;
+        }, userAttempts[0]);
+
+        const bestPct = typeof bestAttempt.percentage === 'number'
+          ? bestAttempt.percentage
+          : (bestAttempt.score / (bestAttempt.maxScore || 100)) * 100;
+
+        if (bestPct < 70) {
+          quizzesPassed = false;
+          pendingRequirements.push(
+            `Aprobar la evaluación "${qz.title}" con un puntaje mínimo del 70% (mejor intento actual: ${Math.round(bestPct)}%).`
+          );
+        } else {
+          passingScores.push(bestPct);
+        }
+      }
+    }
+
+    const eligible = lessonsCompleted && assignmentsPassed && quizzesPassed;
+    const averageScore = passingScores.length > 0
+      ? Math.round(passingScores.reduce((a, b) => a + b, 0) / passingScores.length)
+      : undefined;
+
+    return {
+      eligible,
+      progressPct,
+      lessonsCompleted,
+      assignmentsPassed,
+      quizzesPassed,
+      pendingRequirements,
+      totalAssignmentsCount: courseAssignments.length,
+      totalQuizzesCount: courseQuizzes.length,
+      averageScore
+    };
+  };
+
   const resetToDefaultData = () => {
     localStorage.clear();
     setUsers(INITIAL_USERS);
@@ -1640,6 +1737,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         markLessonAsCompleted,
         isLessonCompleted,
         getCourseProgressPercentage,
+        getCourseCertificateEligibility,
         recordCourseAccess,
         theme,
         toggleTheme,
