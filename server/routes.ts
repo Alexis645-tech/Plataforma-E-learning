@@ -1021,6 +1021,31 @@ apiRouter.put('/notifications/:id', async (req: Request, res: Response) => {
   }
 });
 
+apiRouter.post('/notifications/mark-all-read', async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.body;
+    if (!userId) {
+      return res.status(400).json({ error: 'userId is required' });
+    }
+
+    memoryStore.notifications = memoryStore.notifications.map((n) =>
+      n.userId === userId ? { ...n, read: true } : n
+    );
+
+    const db = await getMongoDb();
+    if (db) {
+      await db.collection('notifications').updateMany(
+        { userId },
+        { $set: { read: true } }
+      );
+    }
+
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 apiRouter.delete('/notifications/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;

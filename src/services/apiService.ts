@@ -462,6 +462,32 @@ class ApiService {
     }
   }
 
+  async markNotificationAsRead(id: string): Promise<boolean> {
+    try {
+      const res = await fetch(`${this.baseUrl}/notifications/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ read: true }),
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  }
+
+  async markAllNotificationsAsRead(userId: string): Promise<boolean> {
+    try {
+      const res = await fetch(`${this.baseUrl}/notifications/mark-all-read`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  }
+
   async deleteNotification(id: string): Promise<boolean> {
     try {
       const res = await fetch(`${this.baseUrl}/notifications/${id}`, { method: 'DELETE' });

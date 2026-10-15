@@ -1446,13 +1446,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Notifications
   const markNotificationAsRead = (id: string) => {
-    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+    setNotifications((prev) => {
+      const updated = prev.map((n) => (n.id === id ? { ...n, read: true } : n));
+      try {
+        localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(updated));
+      } catch (e) {
+        console.warn('Error saving notifications to localStorage:', e);
+      }
+      return updated;
+    });
+    apiService.markNotificationAsRead(id);
   };
 
   const markAllNotificationsAsRead = () => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.userId === currentUser.id ? { ...n, read: true } : n))
-    );
+    setNotifications((prev) => {
+      const updated = prev.map((n) => (n.userId === currentUser.id ? { ...n, read: true } : n));
+      try {
+        localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(updated));
+      } catch (e) {
+        console.warn('Error saving notifications to localStorage:', e);
+      }
+      return updated;
+    });
+    apiService.markAllNotificationsAsRead(currentUser.id);
   };
 
   // Student Progress
