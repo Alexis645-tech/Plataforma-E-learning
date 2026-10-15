@@ -1694,6 +1694,24 @@ export const TeacherDashboard: React.FC = () => {
                           {asg.description}
                         </p>
 
+                        {asg.materials && asg.materials.length > 0 && (
+                          <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                            {asg.materials.map((mat) => (
+                              <a
+                                key={mat.id}
+                                href={mat.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 border border-indigo-200/60 dark:border-indigo-900/60 text-indigo-700 dark:text-indigo-300 text-[10px] font-medium transition-colors"
+                              >
+                                <Paperclip className="w-2.5 h-2.5 text-indigo-500" />
+                                <span className="truncate max-w-[150px]">{mat.title}</span>
+                                <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                              </a>
+                            ))}
+                          </div>
+                        )}
+
                         <div className="pt-2.5 border-t border-slate-200/60 dark:border-slate-700/60 flex flex-wrap items-center justify-between gap-2">
                           <div className="flex items-center gap-3 text-[10px] text-slate-400">
                             <span>Límite: {new Date(asg.dueDate).toLocaleDateString()} · {new Date(asg.dueDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
@@ -3124,6 +3142,40 @@ export const TeacherDashboard: React.FC = () => {
                 />
               </div>
 
+              {/* Enlace de Contenido Referente (Opcional) */}
+              <div className="p-3.5 rounded-xl border border-indigo-100 dark:border-indigo-900/60 bg-indigo-50/40 dark:bg-indigo-950/20 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5 text-xs">
+                    <Link2 className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                    Enlace de Contenido Referente / Material (Opcional)
+                  </label>
+                  <span className="text-[10px] text-slate-400 font-medium">Google Drive, Web, Documentos, etc.</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <div className="sm:col-span-1">
+                    <input
+                      type="text"
+                      placeholder="Título (ej: Guía Excel / Caso)"
+                      value={newMaterialTitle}
+                      onChange={(e) => setNewMaterialTitle(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <input
+                      type="url"
+                      placeholder="https://drive.google.com/... o enlace web"
+                      value={newMaterialUrl}
+                      onChange={(e) => setNewMaterialUrl(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-mono"
+                    />
+                  </div>
+                </div>
+                <p className="text-[10px] text-slate-400 leading-normal">
+                  Los estudiantes podrán hacer clic en este enlace directamente desde su panel y desde el aula para consultar la información necesaria.
+                </p>
+              </div>
+
               <div>
                 <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Fecha y Hora Límite</label>
                 <input
@@ -3247,6 +3299,69 @@ export const TeacherDashboard: React.FC = () => {
                   onChange={(e) => setAsgEditDescription(e.target.value)}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
                 />
+              </div>
+
+              {/* Enlace de Contenido Referente (Opcional) */}
+              <div className="p-3.5 rounded-xl border border-indigo-100 dark:border-indigo-900/60 bg-indigo-50/40 dark:bg-indigo-950/20 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5 text-xs">
+                    <Link2 className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                    Enlace de Contenido Referente / Material (Opcional)
+                  </label>
+                  <span className="text-[10px] text-slate-400 font-medium">Google Drive, Web, Documentos, etc.</span>
+                </div>
+
+                {/* Existing materials list if already added */}
+                {asgEditMaterials.length > 0 && (
+                  <div className="space-y-1.5 mb-2">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                      Enlaces actuales ({asgEditMaterials.length}):
+                    </span>
+                    {asgEditMaterials.map((mat, idx) => (
+                      <div
+                        key={idx}
+                        className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2 text-xs"
+                      >
+                        <div className="min-w-0">
+                          <div className="font-medium text-slate-900 dark:text-white truncate">{mat.title}</div>
+                          <div className="text-[10px] text-indigo-600 dark:text-indigo-400 truncate font-mono">{mat.url}</div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setAsgEditMaterials((prev) => prev.filter((_, i) => i !== idx))}
+                          className="p-1 text-slate-400 hover:text-rose-600 rounded transition-colors shrink-0"
+                          title="Eliminar este enlace"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <div className="sm:col-span-1">
+                    <input
+                      type="text"
+                      placeholder="Título (ej: Guía Excel)"
+                      value={newEditMaterialTitle}
+                      onChange={(e) => setNewEditMaterialTitle(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <input
+                      type="url"
+                      placeholder="https://drive.google.com/... o enlace web"
+                      value={newEditMaterialUrl}
+                      onChange={(e) => setNewEditMaterialUrl(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-mono"
+                    />
+                  </div>
+                </div>
+                <p className="text-[10px] text-slate-400 leading-normal">
+                  Los estudiantes podrán hacer clic en este enlace directamente desde su panel y desde el aula para consultar la información necesaria.
+                </p>
               </div>
 
               <div>

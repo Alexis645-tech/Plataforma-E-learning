@@ -19,7 +19,8 @@ import {
   ArrowRight,
   MessageSquare,
   Lock,
-  GraduationCap
+  GraduationCap,
+  Paperclip
 } from 'lucide-react';
 
 export const StudentDashboard: React.FC = () => {
@@ -509,6 +510,24 @@ export const StudentDashboard: React.FC = () => {
                     </div>
 
                     <p className="text-[11px] text-slate-500 line-clamp-2">{asg.description}</p>
+
+                    {asg.materials && asg.materials.length > 0 && (
+                      <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                        {asg.materials.map((mat) => (
+                          <a
+                            key={mat.id}
+                            href={mat.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 border border-indigo-200/60 dark:border-indigo-900/60 text-indigo-700 dark:text-indigo-300 text-[10px] font-medium transition-colors"
+                          >
+                            <Paperclip className="w-2.5 h-2.5 text-indigo-500" />
+                            <span className="truncate max-w-[160px]">{mat.title}</span>
+                            <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                          </a>
+                        ))}
+                      </div>
+                    )}
 
                     <div className="flex items-center justify-between pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
                       <span className="text-[10px] text-slate-400">
