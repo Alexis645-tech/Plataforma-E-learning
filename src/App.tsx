@@ -9,6 +9,7 @@ import { StudentGrades } from './components/student/StudentGrades';
 import { ChatPanel } from './components/chat/ChatPanel';
 import { ProfileSettings } from './components/profile/ProfileSettings';
 import { LoginScreen } from './components/auth/LoginScreen';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 
 const AppContent: React.FC = () => {
   const { currentUser, activeTab, isAuthenticated, theme } = useApp();
@@ -67,7 +68,9 @@ const AppContent: React.FC = () => {
 
         <main className="flex-1 min-w-0 w-full max-w-full lg:pl-64 transition-all duration-200">
           <div className="w-full max-w-7xl mx-auto p-3 sm:p-6 lg:p-8 min-h-[calc(100vh-64px)]">
-            {renderActiveView()}
+            <ErrorBoundary>
+              {renderActiveView()}
+            </ErrorBoundary>
           </div>
         </main>
       </div>

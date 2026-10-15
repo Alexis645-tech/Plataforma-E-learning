@@ -195,13 +195,13 @@ export const QuizPlayer: React.FC<QuizPlayerProps> = ({ quiz, onBack, isPreview 
                 Revisión Detallada de Respuestas
               </h3>
 
-              {quiz.questions.map((q, idx) => {
+              {questions.map((q, idx) => {
                 const studentAns = selectedAnswers[q.id];
                 const isCorrect = studentAns === q.correctIndex;
 
                 return (
                   <div
-                    key={q.id}
+                    key={q.id || idx}
                     className={`p-4 rounded-xl border text-xs space-y-2 ${
                       isCorrect
                         ? 'border-emerald-200 bg-emerald-50/30 dark:border-emerald-900/40 dark:bg-emerald-950/20'
@@ -222,7 +222,7 @@ export const QuizPlayer: React.FC<QuizPlayerProps> = ({ quiz, onBack, isPreview 
                     </div>
 
                     <div className="space-y-1 pt-1">
-                      {q.options.map((opt, oIdx) => {
+                      {(q.options || []).map((opt, oIdx) => {
                         const isChosen = studentAns === oIdx;
                         const isTheCorrectOne = q.correctIndex === oIdx;
 
