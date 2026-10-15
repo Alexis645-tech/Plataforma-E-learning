@@ -18,14 +18,15 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({ course, stud
   const certCode = `ACA-${course.id.replace('crs_', '').toUpperCase()}-${student.id.replace('usr_', '').toUpperCase()}-${new Date().getFullYear()}`;
 
   const handlePrint = () => {
+    // Open print dialog with isolation styling active
     window.print();
   };
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
       <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-2xl w-full border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden my-6 animate-in zoom-in-95 duration-200">
-        {/* Top Control Bar */}
-        <div className="flex items-center justify-between p-4 bg-slate-900 text-white border-b border-slate-800">
+        {/* Top Control Bar (Hidden on print) */}
+        <div className="no-print flex items-center justify-between p-4 bg-slate-900 text-white border-b border-slate-800">
           <div className="flex items-center gap-2">
             <Award className="w-5 h-5 text-amber-400" />
             <span className="text-xs font-bold tracking-wide">
@@ -35,11 +36,11 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({ course, stud
           <div className="flex items-center gap-2">
             <button
               onClick={handlePrint}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition-colors"
-              title="Imprimir o guardar como PDF"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-sm transition-colors cursor-pointer"
+              title="Guardar o Imprimir solo el certificado en PDF"
             >
               <Printer className="w-3.5 h-3.5" />
-              <span>Imprimir / Guardar PDF</span>
+              <span>Guardar Certificado PDF</span>
             </button>
             <button
               onClick={onClose}
@@ -52,8 +53,9 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({ course, stud
         </div>
 
         {/* Certificate Printable Canvas */}
-        <div className="p-6 sm:p-8 bg-slate-100 dark:bg-slate-950/80">
+        <div id="printable-certificate-root" className="p-6 sm:p-8 bg-slate-100 dark:bg-slate-950/80">
           <div
+            id="printable-certificate-canvas"
             ref={certRef}
             className="relative bg-white dark:bg-slate-900 rounded-xl border-4 border-double border-amber-600/40 dark:border-amber-500/30 p-8 sm:p-10 shadow-lg text-center space-y-6 overflow-hidden"
           >
@@ -142,15 +144,15 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({ course, stud
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="p-4 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
+        {/* Footer (Hidden on print) */}
+        <div className="no-print p-4 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
           <div className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
             <span>El progreso de este curso está guardado en el campus virtual.</span>
           </div>
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold transition-colors"
+            className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold transition-colors cursor-pointer"
           >
             Aceptar
           </button>

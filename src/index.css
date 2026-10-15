@@ -48,3 +48,63 @@
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(148, 163, 184, 0.7);
 }
+
+/* Print Styles for Certificate & Clean PDF Export */
+@media print {
+  @page {
+    size: landscape;
+    margin: 0;
+  }
+
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #0f172a !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  /* Hide everything on the page except the certificate container */
+  body * {
+    visibility: hidden !important;
+  }
+
+  #printable-certificate-root,
+  #printable-certificate-root * {
+    visibility: visible !important;
+  }
+
+  #printable-certificate-root {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    margin: 0 !important;
+    padding: 24px !important;
+    background: #0f172a !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    z-index: 999999 !important;
+    box-sizing: border-box !important;
+  }
+
+  #printable-certificate-canvas {
+    width: 100% !important;
+    max-width: 900px !important;
+    margin: auto !important;
+    box-shadow: none !important;
+    border: 3px double #d97706 !important;
+    background: #0b1120 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Ensure modal header, backdrop shadows, and footer buttons are hidden in print */
+  .no-print {
+    display: none !important;
+  }
+}
