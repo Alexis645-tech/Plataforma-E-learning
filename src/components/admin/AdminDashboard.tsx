@@ -908,7 +908,7 @@ export const AdminDashboard: React.FC = () => {
                 <input
                   type="email"
                   required
-                  placeholder="usuario@edusphere.edu"
+                  placeholder="usuario@alexiscastroacademy.vercel.app"
                   value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value)}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"

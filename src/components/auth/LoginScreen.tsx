@@ -254,7 +254,7 @@ export const LoginScreen: React.FC = () => {
                     <input
                       type="email"
                       required
-                      placeholder="usuario@edusphere.edu"
+                      placeholder="usuario@alexiscastroacademy.vercel.app"
                       value={emailInput}
                       onChange={(e) => {
                         setEmailInput(e.target.value);
@@ -365,7 +365,7 @@ export const LoginScreen: React.FC = () => {
                     <input
                       type="email"
                       required
-                      placeholder="tu.nombre@edusphere.edu"
+                      placeholder="tu.nombre@alexiscastroacademy.vercel.app"
                       value={regEmail}
                       onChange={(e) => {
                         setRegEmail(e.target.value);
