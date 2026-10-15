@@ -24,7 +24,8 @@ import {
   FileCheck,
   AlertCircle,
   ListOrdered,
-  HelpCircle
+  HelpCircle,
+  Paperclip
 } from 'lucide-react';
 import { MediaRenderer } from '../common/MediaRenderer';
 import { QuizPlayer } from './QuizPlayer';
@@ -432,9 +433,41 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({ course, onBack, init
                               )}
                             </div>
 
-                            <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
-                              {asg.description}
-                            </p>
+                            {/* Consigna e Instrucciones formatted with paragraph breaks */}
+                            <div className="p-3.5 rounded-xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800 space-y-1.5">
+                              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                Consigna e Instrucciones
+                              </div>
+                              <div className="text-[11px] text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
+                                {asg.description}
+                              </div>
+                            </div>
+
+                            {/* Attached Materials */}
+                            {asg.materials && asg.materials.length > 0 && (
+                              <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2">
+                                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                                  <Paperclip className="w-3.5 h-3.5 text-indigo-500" />
+                                  Materiales y Recursos de Apoyo ({asg.materials.length})
+                                </div>
+                                <div className="space-y-1.5">
+                                  {asg.materials.map((mat) => (
+                                    <a
+                                      key={mat.id}
+                                      href={mat.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="p-2 rounded-lg bg-white dark:bg-slate-900 hover:bg-indigo-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-2 text-indigo-600 dark:text-indigo-400 transition-colors"
+                                    >
+                                      <span className="font-medium text-slate-800 dark:text-slate-200 truncate">{mat.title}</span>
+                                      <span className="inline-flex items-center gap-1 text-[10px] text-indigo-600 dark:text-indigo-400 shrink-0 font-medium">
+                                        Abrir recurso <ExternalLink className="w-3 h-3" />
+                                      </span>
+                                    </a>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
 
                             {/* Rubric View Toggle */}
                             {asg.rubric && asg.rubric.length > 0 && (
