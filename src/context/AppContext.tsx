@@ -112,6 +112,7 @@ const STORAGE_KEYS = {
   NOTIFICATIONS: 'edusphere_notif_v1',
   PROGRESS: 'edusphere_progress_v1',
   CURRENT_USER_ID: 'edusphere_current_user_v1',
+  CURRENT_USER_SESSION: 'edusphere_current_user_session_v1',
   IS_AUTHENTICATED: 'edusphere_is_authenticated_v1',
   THEME: 'edusphere_theme_v1'
 };
@@ -127,9 +128,18 @@ function getStoredItem<T>(key: string, defaultValue: T): T {
 }
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [currentUserSession, setCurrentUserSession] = useState<User | null>(() =>
+    getStoredItem<User | null>(STORAGE_KEYS.CURRENT_USER_SESSION, null)
+  );
   const [users, setUsers] = useState<User[]>(() => {
     const loaded = getStoredItem(STORAGE_KEYS.USERS, INITIAL_USERS);
-    return loaded.map((u) => {
+    const session = getStoredItem<User | null>(STORAGE_KEYS.CURRENT_USER_SESSION, null);
+    // If there is an active session, ensure it is NEVER wiped from the local users array
+    const userList = session && !loaded.some((u: User) => u.id === session.id)
+      ? [session, ...loaded]
+      : loaded;
+
+    return userList.map((u: User) => {
       if (!u.password) {
         const defaultPassword =
           u.role === 'admin'
@@ -142,9 +152,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return u;
     });
   });
-  const [currentUserId, setCurrentUserId] = useState<string>(() =>
-    getStoredItem(STORAGE_KEYS.CURRENT_USER_ID, INITIAL_USERS[0].id)
-  );
+  const [currentUserId, setCurrentUserId] = useState<string>(() => {
+    const session = getStoredItem<User | null>(STORAGE_KEYS.CURRENT_USER_SESSION, null);
+    if (session?.id) return session.id;
+    return getStoredItem(STORAGE_KEYS.CURRENT_USER_ID, INITIAL_USERS[0].id);
+  });
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() =>
     getStoredItem(STORAGE_KEYS.IS_AUTHENTICATED, false)
   );
@@ -224,25 +236,49 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const reloadFromBackend = async () => {
     try {
       const data = await apiService.fetchBootstrap();
-      if (data) {
-        if (data.users && data.users.length > 0) setUsers(data.users);
-        if (data.courses && data.courses.length > 0) setCourses(data.courses);
-        if (data.modules && data.modules.length > 0) setModules(data.modules);
-        if (data.quizzes && data.quizzes.length > 0) setQuizzes(data.quizzes);
-        if (data.assignments && data.assignments.length > 0) setAssignments(data.assignments);
-        if (data.submissions && data.submissions.length > 0) setSubmissions(data.submissions);
-        if (data.quizAttempts && data.quizAttempts.length > 0) setQuizAttempts(data.quizAttempts);
-        if (data.progress && data.progress.length > 0) setProgress(data.progress);
-        if (data.notifications && data.notifications.length > 0) setNotifications(data.notifications);
-        if (data.chatMessages && data.chatMessages.length > 0) setChatMessages(data.chatMessages);
-        if (data.dbStatus) setDbStatus(data.dbStatus);
+      if (!data) return;
+
+      if (data.dbStatus) {
+        setDbStatus(data.dbStatus);
       }
+
+      // CRITICAL RESILIENCE: If MongoDB Atlas is disconnected or returned an emergency fallback,
+      // NEVER overwrite the client's local user cache or courses with incomplete seed data!
+      const isDbDisconnected =
+        Boolean(data.dbStatus && data.dbStatus.isConnected === false) ||
+        Boolean(data.isFallback);
+
+      if (isDbDisconnected) {
+        console.warn('[AppContext] MongoDB Atlas desconectado o en modo degradado. Se preserva la caché local y la sesión del usuario.');
+        return;
+      }
+
+      // MongoDB is connected: safely merge users so active session is never wiped
+      if (data.users && data.users.length > 0) {
+        setUsers((prevUsers) => {
+          const active = prevUsers.find((u) => u.id === currentUserId) || currentUserSession;
+          if (active && !data.users.some((u) => u.id === active.id)) {
+            return [active, ...data.users];
+          }
+          return data.users;
+        });
+      }
+
+      if (data.courses && data.courses.length > 0) setCourses(data.courses);
+      if (data.modules && data.modules.length > 0) setModules(data.modules);
+      if (data.quizzes && data.quizzes.length > 0) setQuizzes(data.quizzes);
+      if (data.assignments && data.assignments.length > 0) setAssignments(data.assignments);
+      if (data.submissions && data.submissions.length > 0) setSubmissions(data.submissions);
+      if (data.quizAttempts && data.quizAttempts.length > 0) setQuizAttempts(data.quizAttempts);
+      if (data.progress && data.progress.length > 0) setProgress(data.progress);
+      if (data.notifications && data.notifications.length > 0) setNotifications(data.notifications);
+      if (data.chatMessages && data.chatMessages.length > 0) setChatMessages(data.chatMessages);
     } catch (e) {
       console.warn('Error reloading data from backend:', e);
     }
   };
 
-  // Bootstrap from MongoDB on mount
+  // Bootstrap from MongoDB on mount with fallback safety
   useEffect(() => {
     let isMounted = true;
     async function init() {
@@ -254,7 +290,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (!isMounted) return;
         if (status) setDbStatus(status);
         if (data) {
-          if (data.users && data.users.length > 0) setUsers(data.users);
+          if (data.dbStatus) setDbStatus(data.dbStatus);
+
+          const isDbDisconnected =
+            Boolean((status && status.isConnected === false)) ||
+            Boolean((data.dbStatus && data.dbStatus.isConnected === false)) ||
+            Boolean(data.isFallback);
+
+          if (isDbDisconnected) {
+            console.warn('[AppContext Init] MongoDB Atlas no conectado al iniciar. Preservando datos locales de usuarios y sesión.');
+            return;
+          }
+
+          if (data.users && data.users.length > 0) {
+            setUsers((prevUsers) => {
+              const active = prevUsers.find((u) => u.id === currentUserId) || currentUserSession;
+              if (active && !data.users.some((u) => u.id === active.id)) {
+                return [active, ...data.users];
+              }
+              return data.users;
+            });
+          }
           if (data.courses && data.courses.length > 0) setCourses(data.courses);
           if (data.modules && data.modules.length > 0) setModules(data.modules);
           if (data.quizzes && data.quizzes.length > 0) setQuizzes(data.quizzes);
@@ -264,7 +320,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           if (data.progress && data.progress.length > 0) setProgress(data.progress);
           if (data.notifications && data.notifications.length > 0) setNotifications(data.notifications);
           if (data.chatMessages && data.chatMessages.length > 0) setChatMessages(data.chatMessages);
-          if (data.dbStatus) setDbStatus(data.dbStatus);
         }
       } catch (err) {
         console.warn('MongoDB bootstrap skipped (using local cache):', err);
@@ -275,6 +330,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       isMounted = false;
     };
   }, []);
+
+  // Periodic auto-reconnection in background when MongoDB is disconnected
+  useEffect(() => {
+    if (isMongoConnected) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const status = await apiService.getDbStatus();
+        if (status?.isConnected) {
+          setDbStatus(status);
+          await reloadFromBackend();
+        }
+      } catch {
+        // Silent periodic background check
+      }
+    }, 15000);
+
+    return () => clearInterval(interval);
+  }, [isMongoConnected, currentUserId, currentUserSession]);
 
   // Auto-sync with MongoDB Atlas when tab gains focus or becomes visible
   useEffect(() => {
@@ -328,6 +402,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem(STORAGE_KEYS.CURRENT_USER_ID, JSON.stringify(currentUserId));
   }, [currentUserId]);
   useEffect(() => {
+    if (currentUserSession) {
+      localStorage.setItem(STORAGE_KEYS.CURRENT_USER_SESSION, JSON.stringify(currentUserSession));
+    } else {
+      localStorage.removeItem(STORAGE_KEYS.CURRENT_USER_SESSION);
+    }
+  }, [currentUserSession]);
+  useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.COURSES, JSON.stringify(courses));
   }, [courses]);
   useEffect(() => {
@@ -360,7 +441,40 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Bidirectionally synchronize user enrollment: ensure coursesEnrolled includes
   // any course where the user's ID appears in course.enrolledStudents
-  const baseCurrentUser = users.find((u) => u.id === currentUserId) || users[0];
+  // NEVER fall back to users[0] (admin) if the active session was teacher or student!
+  const baseCurrentUser = React.useMemo(() => {
+    // 1. Look up user by currentUserId in active list
+    const fromList = users.find((u) => u.id === currentUserId);
+    if (fromList) return fromList;
+
+    // 2. If not found in users list (e.g. temporary MongoDB Atlas disconnection or cold start),
+    // use persisted currentUserSession to PRESERVE user identity and role:
+    if (currentUserSession && currentUserSession.id === currentUserId) {
+      return currentUserSession;
+    }
+
+    // 3. If authenticated and session exists, keep session:
+    if (isAuthenticated && currentUserSession) {
+      return currentUserSession;
+    }
+
+    // 4. If authenticated, try lookup by email:
+    if (isAuthenticated && currentUserSession?.email) {
+      const byEmail = users.find((u) => u.email.toLowerCase() === currentUserSession.email.toLowerCase());
+      if (byEmail) return byEmail;
+    }
+
+    // 5. If authenticated, NEVER degrade teacher/student to admin:
+    if (isAuthenticated && currentUserSession?.role) {
+      const sameRoleUser = users.find((u) => u.role === currentUserSession.role);
+      if (sameRoleUser) return sameRoleUser;
+      if (currentUserSession) return currentUserSession;
+    }
+
+    // 6. Only when NOT authenticated allow default initial user
+    return users[0] || INITIAL_USERS[0];
+  }, [users, currentUserId, currentUserSession, isAuthenticated]);
+
   const currentUser = React.useMemo(() => {
     if (!baseCurrentUser) return users[0];
     const coursesEnrolledViaCourseList = courses
@@ -374,6 +488,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       coursesEnrolled: combinedCourseIds,
     };
   }, [baseCurrentUser, courses]);
+
+  // Keep currentUserSession updated when baseCurrentUser changes while authenticated
+  useEffect(() => {
+    if (isAuthenticated && baseCurrentUser && (!currentUserSession || currentUserSession.id !== baseCurrentUser.id || currentUserSession.role !== baseCurrentUser.role)) {
+      setCurrentUserSession(baseCurrentUser);
+    }
+  }, [isAuthenticated, baseCurrentUser]);
 
   const login = async (email: string, password?: string): Promise<{ success: boolean; error?: string }> => {
     const trimmed = email.trim().toLowerCase();
@@ -389,6 +510,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const apiRes = await apiService.login(trimmed, password.trim());
       if (apiRes.success && apiRes.user) {
         setCurrentUserId(apiRes.user.id);
+        setCurrentUserSession(apiRes.user);
         setIsAuthenticated(true);
         setActiveTab('dashboard');
         setSelectedCourseId(null);
@@ -447,6 +569,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     setCurrentUserId(targetUser.id);
+    setCurrentUserSession(targetUser);
     setIsAuthenticated(true);
     setActiveTab('dashboard');
     setSelectedCourseId(null);
@@ -459,6 +582,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const loginAsUser = async (user: User) => {
     setCurrentUserId(user.id);
+    setCurrentUserSession(user);
     setIsAuthenticated(true);
     setActiveTab('dashboard');
     setSelectedCourseId(null);
@@ -469,6 +593,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const logout = () => {
+    setCurrentUserSession(null);
+    localStorage.removeItem(STORAGE_KEYS.CURRENT_USER_SESSION);
     setIsAuthenticated(false);
     setActiveTab('dashboard');
     setSelectedCourseId(null);
@@ -490,6 +616,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const targetUser = users.find((u) => u.role === role);
     if (targetUser) {
       setCurrentUserId(targetUser.id);
+      setCurrentUserSession(targetUser);
       setActiveTab('dashboard');
       setSelectedCourseId(null);
       setSelectedLessonId(null);
@@ -501,6 +628,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const setCurrentUser = (user: User) => {
     setCurrentUserId(user.id);
+    setCurrentUserSession(user);
   };
 
   // User CRUD

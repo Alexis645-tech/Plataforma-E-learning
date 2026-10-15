@@ -99,8 +99,9 @@ apiRouter.get('/bootstrap', async (req: Request, res: Response) => {
     const status = await getDbStatus();
 
     if (!db) {
-      // Return memoryStore fallback
+      // Return memoryStore fallback with explicit fallback flag
       return res.json({
+        isFallback: true,
         users: memoryStore.users,
         courses: memoryStore.courses,
         modules: memoryStore.modules,
@@ -111,7 +112,11 @@ apiRouter.get('/bootstrap', async (req: Request, res: Response) => {
         progress: memoryStore.progress,
         notifications: memoryStore.notifications,
         chatMessages: memoryStore.chatMessages,
-        dbStatus: status,
+        dbStatus: {
+          ...status,
+          isConnected: false,
+          lastError: status.lastError || 'MongoDB Atlas temporalmente fuera de línea',
+        },
       });
     }
 
@@ -143,6 +148,7 @@ apiRouter.get('/bootstrap', async (req: Request, res: Response) => {
     ]);
 
     res.json({
+      isFallback: false,
       users: users.map(stripMongoId),
       courses: courses.map(stripMongoId),
       modules: modules.map(stripMongoId),
@@ -157,7 +163,36 @@ apiRouter.get('/bootstrap', async (req: Request, res: Response) => {
     });
   } catch (err: any) {
     console.error('Error during bootstrap:', err);
-    res.status(500).json({ error: err.message });
+    const fallbackStatus = await getDbStatus().catch(() => ({
+      isConfigured: true,
+      isConnected: false,
+      envVarDetected: 'MONGODB_URI',
+      dbType: 'MongoDB Atlas',
+      dbName: 'elearning_db',
+      maskedUri: '',
+      lastError: err.message,
+      collectionsCount: {},
+      timestamp: new Date().toISOString(),
+    }));
+
+    res.json({
+      isFallback: true,
+      users: memoryStore.users,
+      courses: memoryStore.courses,
+      modules: memoryStore.modules,
+      quizzes: memoryStore.quizzes,
+      assignments: memoryStore.assignments,
+      submissions: memoryStore.submissions,
+      quizAttempts: memoryStore.quizAttempts,
+      progress: memoryStore.progress,
+      notifications: memoryStore.notifications,
+      chatMessages: memoryStore.chatMessages,
+      dbStatus: {
+        ...fallbackStatus,
+        isConnected: false,
+        lastError: err?.message || 'Error de conexión a MongoDB Atlas',
+      },
+    });
   }
 });
 

@@ -37,6 +37,7 @@ export interface DbStatusResponse {
 }
 
 export interface BootstrapResponse {
+  isFallback?: boolean;
   users: User[];
   courses: Course[];
   modules: CourseModule[];

@@ -1150,6 +1150,7 @@ apiRouter.get("/bootstrap", async (req, res) => {
     const status = await getDbStatus();
     if (!db) {
       return res.json({
+        isFallback: true,
         users: memoryStore.users,
         courses: memoryStore.courses,
         modules: memoryStore.modules,
@@ -1160,7 +1161,11 @@ apiRouter.get("/bootstrap", async (req, res) => {
         progress: memoryStore.progress,
         notifications: memoryStore.notifications,
         chatMessages: memoryStore.chatMessages,
-        dbStatus: status
+        dbStatus: {
+          ...status,
+          isConnected: false,
+          lastError: status.lastError || "MongoDB Atlas temporalmente fuera de l\xEDnea"
+        }
       });
     }
     await seedMongoDatabase(false);
@@ -1188,6 +1193,7 @@ apiRouter.get("/bootstrap", async (req, res) => {
       db.collection("chat_messages").find({}).toArray()
     ]);
     res.json({
+      isFallback: false,
       users: users.map(stripMongoId),
       courses: courses.map(stripMongoId),
       modules: modules.map(stripMongoId),
@@ -1202,7 +1208,35 @@ apiRouter.get("/bootstrap", async (req, res) => {
     });
   } catch (err) {
     console.error("Error during bootstrap:", err);
-    res.status(500).json({ error: err.message });
+    const fallbackStatus = await getDbStatus().catch(() => ({
+      isConfigured: true,
+      isConnected: false,
+      envVarDetected: "MONGODB_URI",
+      dbType: "MongoDB Atlas",
+      dbName: "elearning_db",
+      maskedUri: "",
+      lastError: err.message,
+      collectionsCount: {},
+      timestamp: (/* @__PURE__ */ new Date()).toISOString()
+    }));
+    res.json({
+      isFallback: true,
+      users: memoryStore.users,
+      courses: memoryStore.courses,
+      modules: memoryStore.modules,
+      quizzes: memoryStore.quizzes,
+      assignments: memoryStore.assignments,
+      submissions: memoryStore.submissions,
+      quizAttempts: memoryStore.quizAttempts,
+      progress: memoryStore.progress,
+      notifications: memoryStore.notifications,
+      chatMessages: memoryStore.chatMessages,
+      dbStatus: {
+        ...fallbackStatus,
+        isConnected: false,
+        lastError: err?.message || "Error de conexi\xF3n a MongoDB Atlas"
+      }
+    });
   }
 });
 apiRouter.post("/auth/login", async (req, res) => {

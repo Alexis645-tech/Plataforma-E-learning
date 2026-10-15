@@ -19,7 +19,9 @@ import {
   LogOut,
   FileText,
   Users,
-  ArrowRight
+  ArrowRight,
+  RefreshCw,
+  WifiOff
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -38,7 +40,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, isSidebarOpen }
     markAllNotificationsAsRead,
     setActiveTab,
     setSelectedChatContactId,
-    logout
+    logout,
+    isMongoConnected
   } = useApp();
 
   const [isNotifOpen, setIsNotifOpen] = useState(false);
@@ -219,14 +222,24 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, isSidebarOpen }
           </a>
         </div>
 
-        {/* Center Zone: Authenticated Role Status (Read-only) */}
-        <div className="hidden md:flex items-center">
+        {/* Center Zone: Authenticated Role Status (Read-only) & DB Reconnection Indicator */}
+        <div className="hidden md:flex items-center gap-2">
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/80 text-xs font-medium text-slate-700 dark:text-slate-200 shadow-2xs">
             <span className="text-slate-400 dark:text-slate-500">Sesión activa:</span>
             <span className={`px-2 py-0.5 rounded font-semibold border ${getRoleBadgeStyle(currentUser.role)}`}>
               {getRoleLabel(currentUser.role)}
             </span>
           </div>
+
+          {!isMongoConnected && (
+            <div
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-900/60 text-[11px] font-semibold text-amber-700 dark:text-amber-300 shadow-2xs animate-pulse"
+              title="La base de datos se está reconectando en segundo plano. Tu sesión, rol y datos están 100% resguardados en este dispositivo."
+            >
+              <RefreshCw className="w-3 h-3 animate-spin text-amber-600 dark:text-amber-400" />
+              <span>Modo protegido (reintentando BD...)</span>
+            </div>
+          )}
         </div>
 
         {/* Right Zone: Controls & Profile */}
